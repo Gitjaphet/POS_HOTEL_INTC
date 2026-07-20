@@ -1,0 +1,1 @@
+# POS_HOTEL_INTC

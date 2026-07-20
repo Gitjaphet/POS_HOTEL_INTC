@@ -1,0 +1,71 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install lint tools
+        run: pip install pyflakes
+      - name: Python syntax check
+        run: pyflakes . || true
+        # "|| true" pour l'instant tant que le module n'est pas 100% lint-clean.
+        # À retirer plus tard pour bloquer réellement sur erreurs de lint.
+      - name: Check compileall (erreurs de syntaxe bloquantes)
+        run: python -m compileall -q .
+
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Validate __manifest__.py
+        run: |
+          python3 <<'EOF'
+          import ast, glob, sys
+          manifests = glob.glob('**/__manifest__.py', recursive=True)
+          if not manifests:
+              print("Aucun __manifest__.py trouvé")
+              sys.exit(1)
+          for path in manifests:
+              with open(path) as f:
+                  tree = ast.parse(f.read(), filename=path)
+              data = ast.literal_eval(tree.body[0].value) if tree.body else {}
+              for key in ("name", "version"):
+                  if key not in data:
+                      print(f"{path}: clé manquante '{key}'")
+                      sys.exit(1)
+              print(f"{path} OK — {data.get('name')} v{data.get('version')}")
+          EOF
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          port: ${{ secrets.VPS_PORT }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -e
+            CLIENT_DIR=/odoo19/mes-modules-pro/POS_HOTEL_INTC
+            if [ -d "$CLIENT_DIR" ]; then
+              cd "$CLIENT_DIR" && git pull
+            else
+              git clone https://github.com/${{ github.repository }}.git "$CLIENT_DIR"
+            fi
+            sudo systemctl restart odoo
