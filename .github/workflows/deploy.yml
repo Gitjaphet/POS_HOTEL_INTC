@@ -63,9 +63,9 @@ jobs:
           script: |
             set -e
             CLIENT_DIR=/odoo19/mes-modules-pro/POS_HOTEL_INTC
-            if [ -d "$CLIENT_DIR" ]; then
-              cd "$CLIENT_DIR" && git pull
+            if [ -d "$CLIENT_DIR/.git" ]; then
+              cd "$CLIENT_DIR" && git remote set-url origin git@github.com:${{ github.repository }}.git && git pull
             else
-              git clone https://github.com/${{ github.repository }}.git "$CLIENT_DIR"
+              git clone git@github.com:${{ github.repository }}.git "$CLIENT_DIR"
             fi
             sudo systemctl restart odoo
