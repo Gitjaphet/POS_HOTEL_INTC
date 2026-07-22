@@ -11,7 +11,7 @@ class ResPartner(models.Model):
 
     def _compute_room_charge_due(self):
         for partner in self:
-            orders = partner.x_ongoing_bookings.sale_order_id
+            orders = partner.x_ongoing_bookings.x_ongoing_booking.sale_order_id
             charges = orders.x_folio_charge_ids.filtered(
                 lambda c: c.payment_status == "due"
             )
