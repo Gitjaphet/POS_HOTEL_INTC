@@ -21,14 +21,14 @@ class PosPaymentMethod(models.Model):
 
         account = self.env["account.account"].search([
             ("code", "=", "411200"),
-            ("company_id", "=", company.id),
+            ("company_ids", "in", company.id),
         ], limit=1)
         if not account:
             account = self.env["account.account"].create({
                 "code": "411200",
                 "name": "Créances Transferts Chambre",
                 "account_type": "asset_receivable",
-                "company_id": company.id,
+                "company_ids": [(6, 0, [company.id])],
                 "reconcile": True,
             })
 
