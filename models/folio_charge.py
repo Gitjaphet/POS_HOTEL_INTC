@@ -55,6 +55,14 @@ class PosHotelFolioCharge(models.Model):
         related="sale_order_id.company_id",
         store=True,
     )
+    pos_config_id = fields.Many2one(
+        "pos.config",
+        related="pos_order_id.session_id.config_id",
+        string="Point de Vente",
+        store=True,
+        readonly=True,
+    )
+
 
     @api.model
     def _create_from_pos_order_line(self, pos_order, sale_order, line, payment_status):

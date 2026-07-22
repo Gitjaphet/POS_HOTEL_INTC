@@ -14,7 +14,7 @@
               <field name="date"/>
               <field name="name"/>
               <field name="partner_id"/>
-              <field name="pos_order_id"/>
+              <field name="pos_config_id" string="Point de Vente"/>
               <field name="amount" sum="Total"/>
               <field name="payment_status" widget="badge"
                      decoration-success="payment_status == 'paid_pos'"
