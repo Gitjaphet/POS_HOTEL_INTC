@@ -7,6 +7,7 @@
     "data": [
         "security/ir.model.access.csv",
         "views/pos_payment_method_views.xml",
+        "views/sale_order_views.xml",
     ],
     "installable": True,
     "application": False,
