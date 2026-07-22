@@ -5,6 +5,7 @@
     "summary": "Transfert des consommations POS vers les chambres d'hôtel",
     "depends": ["point_of_sale", "hotel"],
     "data": [
+        "security/ir.model.access.csv",
         "views/pos_payment_method_views.xml",
     ],
     "installable": True,
