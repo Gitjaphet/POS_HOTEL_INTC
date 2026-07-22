@@ -9,6 +9,7 @@
         "views/pos_payment_method_views.xml",
         "views/sale_order_views.xml",
     ],
+    "post_init_hook": "post_init_hook",
     "installable": True,
     "application": False,
     "license": "LGPL-3",
