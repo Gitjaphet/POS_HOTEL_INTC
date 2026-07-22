@@ -25,4 +25,6 @@ class PosOrder(models.Model):
 
         folio_charge = self.env["pos.hotel.folio.charge"]
         for line in self.lines:
+            if not line.price_subtotal_incl:
+                continue
             folio_charge._create_from_pos_order_line(self, sale_order, line, "due")
