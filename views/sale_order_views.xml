@@ -10,7 +10,7 @@
       <xpath expr="//notebook" position="inside">
         <page string="Extra Charge" name="x_extra_charge">
           <field name="x_folio_charge_ids" nolabel="1">
-            <list editable="false" create="0" delete="0">
+            <list create="0" delete="0">
               <field name="date"/>
               <field name="name"/>
               <field name="partner_id"/>
