@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+  <t t-name="pos_hotel_intc.RoomChargePopup">
+    <Dialog title="'Transfert Chambre'" size="'md'">
+      <div class="room-charge-popup">
+        <input
+          type="text"
+          class="form-control mb-3"
+          placeholder="Rechercher par nom ou numéro de chambre..."
+          t-model="state.search"
+          autofocus="autofocus"
+        />
+        <div class="list-group">
+          <t t-foreach="occupants" t-as="row" t-key="row.partner.id + '-' + row.room.id">
+            <button
+              class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+              t-on-click="() => this.selectOccupant(row.partner)"
+            >
+              <span>
+                <strong t-esc="row.partner.name"/>
+                <span class="text-muted"> — Chambre <t t-esc="row.room.name"/></span>
+              </span>
+              <span t-if="row.partner.x_room_charge_due"
+                    class="badge bg-warning text-dark">
+                Dû: <t t-esc="row.partner.x_room_charge_due"/>
+              </span>
+            </button>
+          </t>
+          <div t-if="!occupants.length" class="text-muted text-center py-3">
+            Aucun client en chambre trouvé.
+          </div>
+        </div>
+      </div>
+    </Dialog>
+  </t>
+</templates>
