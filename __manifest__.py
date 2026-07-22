@@ -9,6 +9,11 @@
         "views/pos_payment_method_views.xml",
         "views/sale_order_views.xml",
     ],
+    "assets": {
+        "point_of_sale._assets_pos": [
+            "POS_HOTEL_INTC/static/src/**/*",
+        ],
+    },
     "post_init_hook": "post_init_hook",
     "installable": True,
     "application": False,
