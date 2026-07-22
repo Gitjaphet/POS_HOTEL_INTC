@@ -14,21 +14,33 @@ class PosOrder(models.Model):
         self.ensure_one()
         if not self.partner_id:
             return
+        if self.env["pos.hotel.folio.charge"].search_count([("pos_order_id", "=", self.id)]):
+            return  # déjà traité, on évite le doublon
 
         sale_orders = self.partner_id.x_ongoing_bookings.x_ongoing_booking.sale_order_id
         if not sale_orders:
             return
         sale_order = sale_orders[:1]
 
-        room_charge_payments = self.payment_ids.filtered(
-            lambda p: p.payment_method_id.is_room_charge
+        # Ratio de la commande payé via "Transfert Chambre" (mécanisme B) vs
+        # payé normalement au POS (mécanisme A). Gère le paiement mixte (split) :
+        # ex. client paie une partie au POS, une partie plus tard au réceptionniste.
+        room_charge_amount = sum(
+            self.payment_ids.filtered(lambda p: p.payment_method_id.is_room_charge).mapped("amount")
         )
-        # Mécanisme B : paiement via "Transfert Chambre" -> statut "due"
-        # Mécanisme A : paiement classique mais client occupant -> statut "paid_pos"
-        payment_status = "due" if room_charge_payments else "paid_pos"
+        total_amount = self.amount_total
+        ratio = (room_charge_amount / total_amount) if total_amount else 0.0
 
         folio_charge = self.env["pos.hotel.folio.charge"]
         for line in self.lines:
             if not line.price_subtotal_incl:
                 continue
-            folio_charge._create_from_pos_order_line(self, sale_order, line, payment_status)
+            if ratio <= 0:
+                folio_charge._create_from_pos_order_line(self, sale_order, line, "paid_pos")
+            elif ratio >= 1:
+                folio_charge._create_from_pos_order_line(self, sale_order, line, "due")
+            else:
+                due_amount = line.price_subtotal_incl * ratio
+                paid_amount = line.price_subtotal_incl - due_amount
+                folio_charge._create_from_pos_order_line(self, sale_order, line, "due", amount=due_amount)
+                folio_charge._create_from_pos_order_line(self, sale_order, line, "paid_pos", amount=paid_amount)
