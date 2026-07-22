@@ -1,19 +1,23 @@
 import { patch } from "@web/core/utils/patch";
 import { PaymentScreen } from "@point_of_sale/app/screens/payment_screen/payment_screen";
+import { makeAwaitable } from "@point_of_sale/app/utils/make_awaitable_dialog";
 import { RoomChargePopup } from "@POS_HOTEL_INTC/app/screens/payment_screen/room_charge_popup/room_charge_popup";
 
 patch(PaymentScreen.prototype, {
+    async openRoomChargePopup() {
+        const partner = await makeAwaitable(this.dialog, RoomChargePopup, {});
+        if (partner) {
+            this.pos.setPartnerToCurrentOrder(partner);
+        }
+    },
+
     async addNewPaymentLine(paymentMethod) {
         if (paymentMethod.is_room_charge) {
-            const partner = await new Promise((resolve) => {
-                this.dialog.add(RoomChargePopup, {
-                    getPayload: (selectedPartner) => resolve(selectedPartner),
-                });
-            });
+            const partner = await makeAwaitable(this.dialog, RoomChargePopup, {});
             if (!partner) {
                 return false;
             }
-            this.currentOrder.setPartner(partner);
+            this.pos.setPartnerToCurrentOrder(partner);
         }
         return super.addNewPaymentLine(...arguments);
     },
