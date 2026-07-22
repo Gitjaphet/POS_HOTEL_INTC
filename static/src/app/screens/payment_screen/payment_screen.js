@@ -13,7 +13,7 @@ patch(PaymentScreen.prototype, {
             if (!partner) {
                 return false;
             }
-            this.currentOrder.set_partner(partner);
+            this.currentOrder.setPartner(partner);
         }
         return super.addNewPaymentLine(...arguments);
     },
