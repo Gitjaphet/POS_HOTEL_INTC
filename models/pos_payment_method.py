@@ -10,6 +10,10 @@ class PosPaymentMethod(models.Model):
              "au lieu d'encaisser directement. Le montant est imputé au folio du client.",
     )
 
+    def _load_pos_data_fields(self, config):
+        fields_list = super()._load_pos_data_fields(config)
+        return fields_list + ["is_room_charge"]
+
     @api.model
     def _ensure_room_charge_method(self, company):
         payment_method = self.search([
