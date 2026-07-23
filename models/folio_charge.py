@@ -72,13 +72,13 @@ class PosHotelFolioCharge(models.Model):
 
 
     @api.model
-    def _create_from_pos_order_line(self, pos_order, sale_order, line, payment_status, amount=None):
+    def _create_refund_from_charge(self, original_charge, pos_order, refund_line, ratio):
         return self.create({
-            "name": line.full_product_name or line.product_id.display_name,
-            "sale_order_id": sale_order.id,
-            "partner_id": pos_order.partner_id.id,
+            "name": f"Remboursement — {original_charge.name}",
+            "sale_order_id": original_charge.sale_order_id.id,
+            "partner_id": original_charge.partner_id.id,
             "pos_order_id": pos_order.id,
-            "pos_order_line_id": line.id,
-            "amount": amount if amount is not None else line.price_subtotal_incl,
-            "payment_status": payment_status,
+            "pos_order_line_id": refund_line.id,
+            "amount": -original_charge.amount * ratio,
+            "payment_status": original_charge.payment_status,
         })

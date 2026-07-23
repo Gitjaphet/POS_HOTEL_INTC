@@ -17,6 +17,26 @@ class PosOrder(models.Model):
         if self.env["pos.hotel.folio.charge"].search_count([("pos_order_id", "=", self.id)]):
             return  # déjà traité, on évite le doublon
 
+        folio_charge = self.env["pos.hotel.folio.charge"]
+
+        # Lignes de remboursement : on compense les lignes folio d'origine,
+        # quelle que soit la réservation en cours du client.
+        refund_lines = self.lines.filtered(lambda l: l.refunded_orderline_id)
+        for line in refund_lines:
+            if not line.price_subtotal_incl:
+                continue
+            original_line = line.refunded_orderline_id
+            original_total = original_line.price_subtotal_incl
+            ratio = min(abs(line.price_subtotal_incl) / original_total, 1.0) if original_total else 0.0
+            original_charges = folio_charge.search([("pos_order_line_id", "=", original_line.id)])
+            for original_charge in original_charges:
+                folio_charge._create_refund_from_charge(original_charge, self, line, ratio)
+
+        # Lignes normales (hors remboursement) : logique inchangée.
+        normal_lines = self.lines - refund_lines
+        if not normal_lines:
+            return
+
         sale_orders = self.partner_id.x_ongoing_bookings.x_ongoing_booking.sale_order_id
         if not sale_orders:
             return
@@ -31,8 +51,7 @@ class PosOrder(models.Model):
         total_amount = self.amount_total
         ratio = (room_charge_amount / total_amount) if total_amount else 0.0
 
-        folio_charge = self.env["pos.hotel.folio.charge"]
-        for line in self.lines:
+        for line in normal_lines:
             if not line.price_subtotal_incl:
                 continue
             if ratio <= 0:
