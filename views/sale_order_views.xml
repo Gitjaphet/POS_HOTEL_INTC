@@ -26,20 +26,26 @@
                      decoration-info="payment_status == 'settled'"/>
             </list>
           </field>
-          <group string="Historique des remboursements" name="x_refund_history">
-            <field name="x_folio_charge_refund_ids" nolabel="1">
-              <list create="0" delete="0">
-                <field name="date"/>
-                <field name="name"/>
-                <field name="original_charge_id" string="Charge d'origine"/>
-                <field name="amount" sum="Total"/>
-                <field name="payment_status" widget="badge"
-                       decoration-success="payment_status == 'paid_pos'"
-                       decoration-warning="payment_status == 'due'"
-                       decoration-info="payment_status == 'settled'"/>
-              </list>
-            </field>
-          </group>
+          <div class="oe_right" style="text-align: right; margin-top: 8px;">
+            <strong>Total Extra Payé : </strong>
+            <field name="x_folio_total_paid" nolabel="1" class="oe_inline"/>
+            <span style="margin: 0 16px;"/>
+            <strong>Total Extra Dû : </strong>
+            <field name="x_folio_total_due" nolabel="1" class="oe_inline"/>
+          </div>
+          <separator string="Historique des remboursements"/>
+          <field name="x_folio_charge_refund_ids" nolabel="1">
+            <list create="0" delete="0">
+              <field name="date"/>
+              <field name="name"/>
+              <field name="original_charge_id" string="Charge d'origine"/>
+              <field name="amount" sum="Total"/>
+              <field name="payment_status" widget="badge"
+                     decoration-success="payment_status == 'paid_pos'"
+                     decoration-warning="payment_status == 'due'"
+                     decoration-info="payment_status == 'settled'"/>
+            </list>
+          </field>
         </page>
       </xpath>
     </field>
