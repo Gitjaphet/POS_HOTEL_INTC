@@ -9,9 +9,7 @@
     <field name="arch" type="xml">
       <xpath expr="//notebook" position="inside">
         <page string="Extra Charge" name="x_extra_charge">
-          <field name="x_folio_charge_ids" nolabel="1"
-                 domain="[('is_refund', '=', False)]"
-                 context="{'default_is_refund': False}">
+          <field name="x_folio_charge_normal_ids" nolabel="1">
             <list create="0" delete="0" default_group_by="payment_status">
               <field name="date"/>
               <field name="name"/>
@@ -29,8 +27,7 @@
             </list>
           </field>
           <group string="Historique des remboursements" name="x_refund_history">
-            <field name="x_folio_charge_ids" nolabel="1"
-                   domain="[('is_refund', '=', True)]">
+            <field name="x_folio_charge_refund_ids" nolabel="1">
               <list create="0" delete="0">
                 <field name="date"/>
                 <field name="name"/>
