@@ -28,6 +28,13 @@ class PosHotelFolioCharge(models.Model):
         ondelete="restrict",
         help="Commande POS d'origine, pour traçabilité.",
     )
+    pos_order_line_id = fields.Many2one(
+        "pos.order.line",
+        string="Ligne de commande POS",
+        ondelete="restrict",
+        index=True,
+        help="Ligne POS d'origine ayant généré cette ligne folio, pour retrouver ce qui doit être compensé en cas de remboursement.",
+    )
     amount = fields.Monetary(
         string="Montant",
         required=True,
@@ -71,6 +78,7 @@ class PosHotelFolioCharge(models.Model):
             "sale_order_id": sale_order.id,
             "partner_id": pos_order.partner_id.id,
             "pos_order_id": pos_order.id,
+            "pos_order_line_id": line.id,
             "amount": amount if amount is not None else line.price_subtotal_incl,
             "payment_status": payment_status,
         })
