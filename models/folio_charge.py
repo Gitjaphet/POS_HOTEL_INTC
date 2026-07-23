@@ -102,7 +102,7 @@ class PosHotelFolioCharge(models.Model):
         [
             ("none", "Aucun"),
             ("partial", "Partiel"),
-            ("full", "Total"),
+            ("full", "Intégral"),
         ],
         string="Statut remboursement",
         compute="_compute_amount_refunded",
