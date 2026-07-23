@@ -69,7 +69,58 @@ class PosHotelFolioCharge(models.Model):
         store=True,
         readonly=True,
     )
+    is_refund = fields.Boolean(
+        string="Est un remboursement",
+        default=False,
+        help="Coché automatiquement pour les lignes créées en compensation d'un remboursement POS.",
+    )
+    original_charge_id = fields.Many2one(
+        "pos.hotel.folio.charge",
+        string="Charge d'origine",
+        ondelete="restrict",
+        index=True,
+        help="Si cette ligne est un remboursement, référence la ligne folio qu'elle compense.",
+    )
+    refund_charge_ids = fields.One2many(
+        "pos.hotel.folio.charge",
+        "original_charge_id",
+        string="Remboursements liés",
+    )
+    amount_refunded = fields.Monetary(
+        string="Montant remboursé",
+        compute="_compute_amount_refunded",
+        store=True,
+        help="Somme des remboursements liés à cette ligne (valeur positive).",
+    )
+    amount_net = fields.Monetary(
+        string="Montant net",
+        compute="_compute_amount_refunded",
+        store=True,
+        help="Montant restant après déduction des remboursements liés.",
+    )
+    refund_status = fields.Selection(
+        [
+            ("none", "Aucun"),
+            ("partial", "Partiel"),
+            ("full", "Total"),
+        ],
+        string="Statut remboursement",
+        compute="_compute_amount_refunded",
+        store=True,
+    )
 
+    @api.depends("amount", "refund_charge_ids.amount")
+    def _compute_amount_refunded(self):
+        for charge in self:
+            refunded = -sum(charge.refund_charge_ids.mapped("amount"))
+            charge.amount_refunded = refunded
+            charge.amount_net = charge.amount - refunded
+            if charge.currency_id.is_zero(refunded):
+                charge.refund_status = "none"
+            elif charge.currency_id.is_zero(charge.amount_net):
+                charge.refund_status = "full"
+            else:
+                charge.refund_status = "partial"
 
     @api.model
     def _create_from_pos_order_line(self, pos_order, sale_order, line, payment_status, amount=None):
@@ -93,4 +144,6 @@ class PosHotelFolioCharge(models.Model):
             "pos_order_line_id": refund_line.id,
             "amount": -original_charge.amount * ratio,
             "payment_status": original_charge.payment_status,
+            "is_refund": True,
+            "original_charge_id": original_charge.id,
         })
