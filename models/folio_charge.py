@@ -1,4 +1,5 @@
 from odoo import api, fields, models
+from odoo.exceptions import UserError
 
 
 class PosHotelFolioCharge(models.Model):
@@ -81,6 +82,13 @@ class PosHotelFolioCharge(models.Model):
         index=True,
         help="Si cette ligne est un remboursement, référence la ligne folio qu'elle compense.",
     )
+    settlement_payment_id = fields.Many2one(
+        "account.payment",
+        string="Paiement de règlement",
+        ondelete="restrict",
+        index=True,
+        help="Paiement ayant soldé cette charge due (bascule payment_status vers 'settled').",
+    )
     refund_charge_ids = fields.One2many(
         "pos.hotel.folio.charge",
         "original_charge_id",
@@ -147,3 +155,57 @@ class PosHotelFolioCharge(models.Model):
             "is_refund": True,
             "original_charge_id": original_charge.id,
         })
+
+
+    def action_settle(self, journal_id, payment_method_line_id=None):
+        """Règle les charges 'due' sélectionnées en un seul paiement groupé,
+        posté et réconcilié avec les écritures POS d'origine (journal TRCH).
+        Toutes les charges doivent appartenir au même folio et au même statut 'due'.
+        """
+        if not self:
+            return
+        if any(charge.payment_status != "due" for charge in self):
+            raise UserError("Seules les charges au statut 'Dû' peuvent être réglées.")
+        if len(self.sale_order_id) > 1:
+            raise UserError("Impossible de régler des charges appartenant à des folios différents en une seule fois.")
+
+        sale_order = self.sale_order_id
+        partner = self.partner_id or sale_order.partner_id
+        total_amount = sum(self.mapped("amount_net"))
+
+        payment_vals = {
+            "payment_type": "inbound",
+            "partner_type": "customer",
+            "partner_id": partner.id,
+            "amount": total_amount,
+            "journal_id": journal_id,
+            "currency_id": self.currency_id.id,
+            "memo": f"Règlement extras — {sale_order.name}",
+        }
+        if payment_method_line_id:
+            payment_vals["payment_method_line_id"] = payment_method_line_id
+
+        payment = self.env["account.payment"].create(payment_vals)
+        payment.action_post()
+
+        # Réconciliation explicite avec les écritures POS d'origine (411200/TRCH)
+        pos_orders = self.pos_order_line_id.order_id
+        pos_moves = pos_orders.account_move | pos_orders.payment_ids.filtered(
+            lambda p: p.payment_method_id.is_room_charge
+        ).account_move_id
+
+        lines_to_reconcile = payment.move_id.line_ids.filtered(
+            lambda l: l.account_id.account_type == "asset_receivable" and not l.reconciled
+        )
+        if pos_moves:
+            lines_to_reconcile += pos_moves.line_ids.filtered(
+                lambda l: l.account_id == lines_to_reconcile.account_id and not l.reconciled
+            )
+        if len(lines_to_reconcile.mapped("account_id")) == 1:
+            lines_to_reconcile.reconcile()
+
+        self.write({
+            "payment_status": "settled",
+            "settlement_payment_id": payment.id,
+        })
+        return payment
