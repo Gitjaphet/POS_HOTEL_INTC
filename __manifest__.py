@@ -7,8 +7,8 @@
     "data": [
         "security/ir.model.access.csv",
         "views/pos_payment_method_views.xml",
-        "views/sale_order_views.xml",
         "wizards/folio_settle_wizard_views.xml",
+        "views/sale_order_views.xml",
     ],
     "assets": {
         "point_of_sale._assets_pos": [
