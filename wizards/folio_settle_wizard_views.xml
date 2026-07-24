@@ -8,10 +8,9 @@
                 <field name="sale_order_id" invisible="1"/>
                 <field name="currency_id" invisible="1"/>
                 <group>
-                    <field name="charge_ids" widget="many2many_tags"/>
-                    <field name="journal_id"/>
+                    <field name="total_due"/>
+                    <field name="amount"/>
                     <field name="payment_method_line_id"/>
-                    <field name="total_amount"/>
                 </group>
                 <footer>
                     <button name="action_confirm_settle" string="Régler" type="object" class="btn-primary"/>

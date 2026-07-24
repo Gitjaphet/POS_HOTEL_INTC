@@ -156,8 +156,54 @@ class PosHotelFolioCharge(models.Model):
             "original_charge_id": original_charge.id,
         })
 
+    def _split_due(self, amount):
+        """Scinde une charge 'due' en deux : une partie à régler immédiatement
+        (montant `amount`, retournée), le reste restant 'due' sur la charge d'origine."""
+        self.ensure_one()
+        remainder = self.amount_net - amount
+        settle_part = self.copy({
+            "amount": amount,
+            "payment_status": "due",
+        })
+        self.write({"amount": remainder})
+        return settle_part
 
-    def action_settle(self, journal_id, payment_method_line_id=None):
+    @api.model
+    def _settle_amount_for_order(self, sale_order, amount, payment_method_line_id):
+        """Sélectionne les charges 'due' les plus anciennes du folio jusqu'à couvrir
+        `amount`, scindant la dernière si besoin, puis les règle en un seul paiement."""
+        due_charges = self.search([
+            ("sale_order_id", "=", sale_order.id),
+            ("payment_status", "=", "due"),
+        ], order="date asc")
+
+        total_due = sum(due_charges.mapped("amount_net"))
+        currency = sale_order.currency_id
+        if currency.compare_amounts(amount, total_due) > 0:
+            raise UserError(
+                f"Le montant saisi ({amount}) dépasse le total dû ({total_due}). "
+                "Corrigez le montant avant de régler."
+            )
+
+        remaining = amount
+        to_settle = self.browse()
+        for charge in due_charges:
+            if charge.currency_id.is_zero(remaining):
+                break
+            charge_amount = charge.amount_net
+            if charge.currency_id.compare_amounts(remaining, charge_amount) >= 0:
+                to_settle += charge
+                remaining -= charge_amount
+            else:
+                to_settle += charge._split_due(remaining)
+                remaining = 0.0
+
+        if to_settle:
+            to_settle.action_settle(payment_method_line_id)
+        return to_settle
+
+
+    def action_settle(self, payment_method_line_id):
         """Règle les charges 'due' sélectionnées en un seul paiement groupé,
         posté et réconcilié avec les écritures POS d'origine (journal TRCH).
         Toutes les charges doivent appartenir au même folio et au même statut 'due'.
@@ -169,26 +215,23 @@ class PosHotelFolioCharge(models.Model):
         if len(self.sale_order_id) > 1:
             raise UserError("Impossible de régler des charges appartenant à des folios différents en une seule fois.")
 
+        payment_method_line = self.env["account.payment.method.line"].browse(payment_method_line_id)
         sale_order = self.sale_order_id
         partner = self.partner_id or sale_order.partner_id
         total_amount = sum(self.mapped("amount_net"))
 
-        payment_vals = {
+        payment = self.env["account.payment"].create({
             "payment_type": "inbound",
             "partner_type": "customer",
             "partner_id": partner.id,
             "amount": total_amount,
-            "journal_id": journal_id,
+            "journal_id": payment_method_line.journal_id.id,
+            "payment_method_line_id": payment_method_line.id,
             "currency_id": self.currency_id.id,
             "memo": f"Règlement extras — {sale_order.name}",
-        }
-        if payment_method_line_id:
-            payment_vals["payment_method_line_id"] = payment_method_line_id
-
-        payment = self.env["account.payment"].create(payment_vals)
+        })
         payment.action_post()
 
-        # Réconciliation explicite avec les écritures POS d'origine (411200/TRCH)
         pos_orders = self.pos_order_line_id.order_id
         pos_moves = pos_orders.account_move | pos_orders.payment_ids.filtered(
             lambda p: p.payment_method_id.is_room_charge
