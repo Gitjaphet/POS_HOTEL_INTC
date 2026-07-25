@@ -53,7 +53,7 @@ class PosPaymentMethod(models.Model):
                 "is_room_charge": True,
                 "journal_id": journal.id,
                 "company_id": company.id,
-                "sequence": 1,
+                "split_transactions": True,
             })
 
         configs = self.env["pos.config"].search([("company_id", "=", company.id)])
