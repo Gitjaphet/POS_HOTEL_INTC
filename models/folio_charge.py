@@ -205,7 +205,9 @@ class PosHotelFolioCharge(models.Model):
 
     def action_settle(self, payment_method_line_id):
         """Règle les charges 'due' sélectionnées en un seul paiement groupé,
-        posté et réconcilié avec les écritures POS d'origine (journal TRCH).
+        posté et réconcilié avec les écritures POS d'origine (compte 411200,
+        nominatives depuis l'activation de split_transactions sur le moyen
+        de paiement Transfert Chambre — voir migration 19.0.1.0.6).
         Toutes les charges doivent appartenir au même folio et au même statut 'due'.
         """
         if not self:
@@ -240,19 +242,23 @@ class PosHotelFolioCharge(models.Model):
         })
         payment.action_post()
 
-        pos_orders = self.pos_order_line_id.order_id
-        pos_moves = pos_orders.account_move | pos_orders.payment_ids.filtered(
-            lambda p: p.payment_method_id.is_room_charge
-        ).account_move_id
+        # Réconciliation : les créances Transfert Chambre nominatives vivent
+        # dans l'écriture comptable de CHAQUE SESSION POS (self.move_id sur
+        # pos.session), pas dans un account_move individuel par paiement.
+        # On les retrouve par compte (411200) + partenaire, seul repère fiable
+        # depuis que split_transactions=True rend ces lignes nominatives.
+        pos_sessions = self.pos_order_line_id.order_id.session_id
 
         lines_to_reconcile = payment.move_id.line_ids.filtered(
-            lambda l: l.account_id.account_type == "asset_receivable" and not l.reconciled
+            lambda l: l.account_id == room_charge_account and not l.reconciled
         )
-        if pos_moves:
-            lines_to_reconcile += pos_moves.line_ids.filtered(
-                lambda l: l.account_id == lines_to_reconcile.account_id and not l.reconciled
+        if pos_sessions:
+            lines_to_reconcile += pos_sessions.mapped("move_id.line_ids").filtered(
+                lambda l: l.account_id == room_charge_account
+                and l.partner_id == partner
+                and not l.reconciled
             )
-        if len(lines_to_reconcile.mapped("account_id")) == 1:
+        if len(lines_to_reconcile.mapped("account_id")) == 1 and len(lines_to_reconcile) > 1:
             lines_to_reconcile.reconcile()
 
         self.write({
