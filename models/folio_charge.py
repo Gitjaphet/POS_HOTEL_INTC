@@ -220,6 +220,13 @@ class PosHotelFolioCharge(models.Model):
         partner = self.partner_id or sale_order.partner_id
         total_amount = sum(self.mapped("amount_net"))
 
+        room_charge_account = self.env["account.account"].search([
+            ("code", "=", "411200"),
+            ("company_ids", "in", self.company_id.id),
+        ], limit=1)
+        if not room_charge_account:
+            raise UserError("Le compte 411200 (Créances Transferts Chambre) est introuvable.")
+
         payment = self.env["account.payment"].create({
             "payment_type": "inbound",
             "partner_type": "customer",
@@ -229,6 +236,7 @@ class PosHotelFolioCharge(models.Model):
             "payment_method_line_id": payment_method_line.id,
             "currency_id": self.currency_id.id,
             "memo": f"Règlement extras — {sale_order.name}",
+            "destination_account_id": room_charge_account.id,
         })
         payment.action_post()
 
