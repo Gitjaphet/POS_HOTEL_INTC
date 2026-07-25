@@ -202,68 +202,68 @@ class PosHotelFolioCharge(models.Model):
             to_settle.action_settle(payment_method_line_id)
         return to_settle
 
-def action_settle(self, payment_method_line_id):
-        """Règle les charges 'due' sélectionnées en un seul paiement groupé,
-        posté et réconcilié avec les écritures POS d'origine (compte 411200,
-        nominatives depuis l'activation de split_transactions sur le moyen
-        de paiement Transfert Chambre — voir migration 19.0.1.0.6).
-        Toutes les charges doivent appartenir au même folio et au même statut 'due'.
-        """
-        if not self:
-            return
-        if any(charge.payment_status != "due" for charge in self):
-            raise UserError("Seules les charges au statut 'Dû' peuvent être réglées.")
-        if len(self.sale_order_id) > 1:
-            raise UserError("Impossible de régler des charges appartenant à des folios différents en une seule fois.")
+    def action_settle(self, payment_method_line_id):
+            """Règle les charges 'due' sélectionnées en un seul paiement groupé,
+            posté et réconcilié avec les écritures POS d'origine (compte 411200,
+            nominatives depuis l'activation de split_transactions sur le moyen
+            de paiement Transfert Chambre — voir migration 19.0.1.0.6).
+            Toutes les charges doivent appartenir au même folio et au même statut 'due'.
+            """
+            if not self:
+                return
+            if any(charge.payment_status != "due" for charge in self):
+                raise UserError("Seules les charges au statut 'Dû' peuvent être réglées.")
+            if len(self.sale_order_id) > 1:
+                raise UserError("Impossible de régler des charges appartenant à des folios différents en une seule fois.")
 
-        payment_method_line = self.env["account.payment.method.line"].browse(payment_method_line_id)
-        sale_order = self.sale_order_id
-        partner = self.partner_id or sale_order.partner_id
-        currency = sale_order.currency_id
-        company = sale_order.company_id
-        total_amount = sum(self.mapped("amount_net"))
+            payment_method_line = self.env["account.payment.method.line"].browse(payment_method_line_id)
+            sale_order = self.sale_order_id
+            partner = self.partner_id or sale_order.partner_id
+            currency = sale_order.currency_id
+            company = sale_order.company_id
+            total_amount = sum(self.mapped("amount_net"))
 
-        room_charge_account = self.env["account.account"].search([
-            ("code", "=", "411200"),
-            ("company_ids", "in", company.id),
-        ], limit=1)
-        if not room_charge_account:
-            raise UserError("Le compte 411200 (Créances Transferts Chambre) est introuvable.")
+            room_charge_account = self.env["account.account"].search([
+                ("code", "=", "411200"),
+                ("company_ids", "in", company.id),
+            ], limit=1)
+            if not room_charge_account:
+                raise UserError("Le compte 411200 (Créances Transferts Chambre) est introuvable.")
 
-        payment = self.env["account.payment"].create({
-            "payment_type": "inbound",
-            "partner_type": "customer",
-            "partner_id": partner.id,
-            "amount": total_amount,
-            "journal_id": payment_method_line.journal_id.id,
-            "payment_method_line_id": payment_method_line.id,
-            "currency_id": currency.id,
-            "memo": f"Règlement extras — {sale_order.name}",
-            "destination_account_id": room_charge_account.id,
-        })
-        payment.action_post()
+            payment = self.env["account.payment"].create({
+                "payment_type": "inbound",
+                "partner_type": "customer",
+                "partner_id": partner.id,
+                "amount": total_amount,
+                "journal_id": payment_method_line.journal_id.id,
+                "payment_method_line_id": payment_method_line.id,
+                "currency_id": currency.id,
+                "memo": f"Règlement extras — {sale_order.name}",
+                "destination_account_id": room_charge_account.id,
+            })
+            payment.action_post()
 
-        # Réconciliation : les créances Transfert Chambre nominatives vivent
-        # dans l'écriture comptable de CHAQUE SESSION POS (self.move_id sur
-        # pos.session), pas dans un account_move individuel par paiement.
-        # On les retrouve par compte (411200) + partenaire, seul repère fiable
-        # depuis que split_transactions=True rend ces lignes nominatives.
-        pos_sessions = self.pos_order_line_id.order_id.session_id
+            # Réconciliation : les créances Transfert Chambre nominatives vivent
+            # dans l'écriture comptable de CHAQUE SESSION POS (self.move_id sur
+            # pos.session), pas dans un account_move individuel par paiement.
+            # On les retrouve par compte (411200) + partenaire, seul repère fiable
+            # depuis que split_transactions=True rend ces lignes nominatives.
+            pos_sessions = self.pos_order_line_id.order_id.session_id
 
-        lines_to_reconcile = payment.move_id.line_ids.filtered(
-            lambda l: l.account_id == room_charge_account and not l.reconciled
-        )
-        if pos_sessions:
-            lines_to_reconcile += pos_sessions.mapped("move_id.line_ids").filtered(
-                lambda l: l.account_id == room_charge_account
-                and l.partner_id == partner
-                and not l.reconciled
+            lines_to_reconcile = payment.move_id.line_ids.filtered(
+                lambda l: l.account_id == room_charge_account and not l.reconciled
             )
-        if len(lines_to_reconcile.mapped("account_id")) == 1 and len(lines_to_reconcile) > 1:
-            lines_to_reconcile.reconcile()
+            if pos_sessions:
+                lines_to_reconcile += pos_sessions.mapped("move_id.line_ids").filtered(
+                    lambda l: l.account_id == room_charge_account
+                    and l.partner_id == partner
+                    and not l.reconciled
+                )
+            if len(lines_to_reconcile.mapped("account_id")) == 1 and len(lines_to_reconcile) > 1:
+                lines_to_reconcile.reconcile()
 
-        self.write({
-            "payment_status": "settled",
-            "settlement_payment_id": payment.id,
-        })
-        return payment
+            self.write({
+                "payment_status": "settled",
+                "settlement_payment_id": payment.id,
+            })
+            return payment
