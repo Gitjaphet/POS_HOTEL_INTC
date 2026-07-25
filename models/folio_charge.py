@@ -202,8 +202,7 @@ class PosHotelFolioCharge(models.Model):
             to_settle.action_settle(payment_method_line_id)
         return to_settle
 
-
-    def action_settle(self, payment_method_line_id):
+def action_settle(self, payment_method_line_id):
         """Règle les charges 'due' sélectionnées en un seul paiement groupé,
         posté et réconcilié avec les écritures POS d'origine (compte 411200,
         nominatives depuis l'activation de split_transactions sur le moyen
@@ -220,11 +219,13 @@ class PosHotelFolioCharge(models.Model):
         payment_method_line = self.env["account.payment.method.line"].browse(payment_method_line_id)
         sale_order = self.sale_order_id
         partner = self.partner_id or sale_order.partner_id
+        currency = sale_order.currency_id
+        company = sale_order.company_id
         total_amount = sum(self.mapped("amount_net"))
 
         room_charge_account = self.env["account.account"].search([
             ("code", "=", "411200"),
-            ("company_ids", "in", self.company_id.id),
+            ("company_ids", "in", company.id),
         ], limit=1)
         if not room_charge_account:
             raise UserError("Le compte 411200 (Créances Transferts Chambre) est introuvable.")
@@ -236,7 +237,7 @@ class PosHotelFolioCharge(models.Model):
             "amount": total_amount,
             "journal_id": payment_method_line.journal_id.id,
             "payment_method_line_id": payment_method_line.id,
-            "currency_id": self.currency_id.id,
+            "currency_id": currency.id,
             "memo": f"Règlement extras — {sale_order.name}",
             "destination_account_id": room_charge_account.id,
         })
