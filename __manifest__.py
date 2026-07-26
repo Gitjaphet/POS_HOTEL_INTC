@@ -1,6 +1,6 @@
 {
     "name": "POS Hotel INTC",
-    "version": "19.0.1.0.6",
+    "version": "19.0.1.0.7",
     "category": "Point of Sale",
     "summary": "Transfert des consommations POS vers les chambres d'hôtel",
     "depends": ["point_of_sale", "hotel"],
