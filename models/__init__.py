@@ -6,4 +6,3 @@ from . import folio_charge
 from . import sale_order
 from . import pos_order
 from . import sale_order_line
-from . import planning_slot
