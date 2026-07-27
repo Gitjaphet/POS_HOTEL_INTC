@@ -51,7 +51,10 @@ class PosOrder(models.Model):
         sale_order_line = False
         resource = self.x_room_charge_resource_id
         if resource:
-            slot = resource.x_ongoing_booking[:1]
+            now = fields.Datetime.now()
+            slot = resource.x_ongoing_booking.filtered(
+                lambda s: s.start_datetime <= now <= s.end_datetime
+            )[:1]
             if slot and slot.sale_line_id:
                 sale_order = slot.sale_line_id.order_id
                 sale_order_line = slot.sale_line_id
