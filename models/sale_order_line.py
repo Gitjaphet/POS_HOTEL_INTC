@@ -1,8 +1,25 @@
-from odoo import models
+from odoo import api, fields, models
 
 
 class SaleOrderLine(models.Model):
     _inherit = 'sale.order.line'
+
+    x_room_resource_ids = fields.Many2many(
+        'resource.resource',
+        compute='_compute_x_room_resource_ids',
+        string="Chambre(s)",
+    )
+    x_room_resource_names = fields.Char(
+        compute='_compute_x_room_resource_ids',
+        string="Chambre(s)",
+    )
+
+    @api.depends('planning_slot_ids.resource_id')
+    def _compute_x_room_resource_ids(self):
+        for line in self:
+            resources = line.planning_slot_ids.resource_id
+            line.x_room_resource_ids = resources
+            line.x_room_resource_names = ", ".join(resources.mapped('name'))
 
     def _planning_slot_vals_list_per_sol(self):
         vals_list_per_sol = super()._planning_slot_vals_list_per_sol()
