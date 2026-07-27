@@ -50,11 +50,8 @@ class PosOrder(models.Model):
         sale_order = False
         resource = self.x_room_charge_resource_id
         if resource:
-            slot = self.env['planning.slot'].search([
-                ('resource_id', '=', resource.id),
-                ('sale_line_id', '!=', False),
-            ], order='id desc', limit=1)
-            sale_order = slot.sale_line_id.order_id if slot else False
+            slot = resource.x_ongoing_booking[:1]
+            sale_order = slot.sale_line_id.order_id if slot and slot.sale_line_id else False
 
         if not sale_order:
             sale_orders = self.partner_id.x_ongoing_bookings.x_ongoing_booking.sale_order_id
