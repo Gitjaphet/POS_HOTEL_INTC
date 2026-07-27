@@ -36,6 +36,13 @@ class PosHotelFolioCharge(models.Model):
         index=True,
         help="Ligne POS d'origine ayant généré cette ligne folio, pour retrouver ce qui doit être compensé en cas de remboursement.",
     )
+    sale_order_line_id = fields.Many2one(
+        "sale.order.line",
+        string="Ligne du folio (chambre)",
+        ondelete="restrict",
+        index=True,
+        help="Ligne de la réservation (chambre précise) à laquelle cette charge doit être imputée, pour une facturation séparée par chambre.",
+    )
     amount = fields.Monetary(
         string="Montant",
         required=True,
@@ -131,10 +138,11 @@ class PosHotelFolioCharge(models.Model):
                 charge.refund_status = "partial"
 
     @api.model
-    def _create_from_pos_order_line(self, pos_order, sale_order, line, payment_status, amount=None):
+    def _create_from_pos_order_line(self, pos_order, sale_order, line, payment_status, amount=None, sale_order_line=None):
         return self.create({
             "name": line.full_product_name or line.product_id.display_name,
             "sale_order_id": sale_order.id,
+            "sale_order_line_id": sale_order_line.id if sale_order_line else False,
             "partner_id": pos_order.partner_id.id,
             "pos_order_id": pos_order.id,
             "pos_order_line_id": line.id,
@@ -147,6 +155,7 @@ class PosHotelFolioCharge(models.Model):
         return self.create({
             "name": f"Remboursement — {original_charge.name}",
             "sale_order_id": original_charge.sale_order_id.id,
+            "sale_order_line_id": original_charge.sale_order_line_id.id,
             "partner_id": original_charge.partner_id.id,
             "pos_order_id": pos_order.id,
             "pos_order_line_id": refund_line.id,
