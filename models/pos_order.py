@@ -1,4 +1,4 @@
-from odoo import fields, models
+from odoo import api, fields, models
 
 
 class PosOrder(models.Model):
@@ -7,11 +7,26 @@ class PosOrder(models.Model):
     x_room_charge_resource_id = fields.Many2one(
         "resource.resource",
         string="Chambre (Transfert Chambre)",
+        compute="_compute_x_room_charge_resource_id",
+        inverse="_inverse_x_room_charge_resource_id",
+        store=False,
     )
+    x_room_charge_resource_id_int = fields.Integer(
+        string="Chambre (Transfert Chambre) — id technique",
+    )
+
+    @api.depends("x_room_charge_resource_id_int")
+    def _compute_x_room_charge_resource_id(self):
+        for order in self:
+            order.x_room_charge_resource_id = order.x_room_charge_resource_id_int
+
+    def _inverse_x_room_charge_resource_id(self):
+        for order in self:
+            order.x_room_charge_resource_id_int = order.x_room_charge_resource_id.id
 
     def _load_pos_data_fields(self, config):
         fields = super()._load_pos_data_fields(config)
-        fields.append("x_room_charge_resource_id")
+        fields.append("x_room_charge_resource_id_int")
         return fields
 
     def _process_saved_order(self, draft):
