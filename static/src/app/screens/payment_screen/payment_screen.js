@@ -17,19 +17,21 @@ patch(PaymentScreen.prototype, {
     },
 
     async openRoomChargePopup() {
-        const partner = await makeAwaitable(this.dialog, RoomChargePopup, {});
-        if (partner) {
-            this.pos.setPartnerToCurrentOrder(partner);
+        const result = await makeAwaitable(this.dialog, RoomChargePopup, {});
+        if (result) {
+            this.pos.setPartnerToCurrentOrder(result.partner);
+            this.pos.get_order().update({ x_room_charge_resource_id: result.room.id });
         }
     },
 
     async addNewPaymentLine(paymentMethod) {
         if (paymentMethod.is_room_charge) {
-            const partner = await makeAwaitable(this.dialog, RoomChargePopup, {});
-            if (!partner) {
+            const result = await makeAwaitable(this.dialog, RoomChargePopup, {});
+            if (!result) {
                 return false;
             }
-            this.pos.setPartnerToCurrentOrder(partner);
+            this.pos.setPartnerToCurrentOrder(result.partner);
+            this.pos.get_order().update({ x_room_charge_resource_id: result.room.id });
         }
         return super.addNewPaymentLine(...arguments);
     },

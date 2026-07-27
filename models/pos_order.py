@@ -1,8 +1,18 @@
-from odoo import models
+from odoo import fields, models
 
 
 class PosOrder(models.Model):
     _inherit = "pos.order"
+
+    x_room_charge_resource_id = fields.Many2one(
+        "resource.resource",
+        string="Chambre (Transfert Chambre)",
+    )
+
+    def _load_pos_data_fields(self, config):
+        fields = super()._load_pos_data_fields(config)
+        fields.append("x_room_charge_resource_id")
+        return fields
 
     def _process_saved_order(self, draft):
         order_id = super()._process_saved_order(draft)
@@ -37,10 +47,20 @@ class PosOrder(models.Model):
         if not normal_lines:
             return
 
-        sale_orders = self.partner_id.x_ongoing_bookings.x_ongoing_booking.sale_order_id
-        if not sale_orders:
-            return
-        sale_order = sale_orders[:1]
+        sale_order = False
+        resource = self.x_room_charge_resource_id
+        if resource:
+            slot = self.env['planning.slot'].search([
+                ('resource_id', '=', resource.id),
+                ('sale_line_id', '!=', False),
+            ], order='id desc', limit=1)
+            sale_order = slot.sale_line_id.order_id if slot else False
+
+        if not sale_order:
+            sale_orders = self.partner_id.x_ongoing_bookings.x_ongoing_booking.sale_order_id
+            if not sale_orders:
+                return
+            sale_order = sale_orders[:1]
 
         # Ratio de la commande payé via "Transfert Chambre" (mécanisme B) vs
         # payé normalement au POS (mécanisme A). Gère le paiement mixte (split) :
