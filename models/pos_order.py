@@ -48,13 +48,16 @@ class PosOrder(models.Model):
             return
 
         sale_order = False
+        sale_order_line = False
         resource = self.x_room_charge_resource_id
         if resource:
-            slot = self.env['planning.slot'].search([
-                ('resource_id', '=', resource.id),
-                ('sale_line_id', '!=', False),
-            ], order='id desc', limit=1)
-            sale_order = slot.sale_line_id.order_id if slot else False
+            now = fields.Datetime.now()
+            slot = resource.x_ongoing_booking.filtered(
+                lambda s: s.start_datetime <= now <= s.end_datetime
+            )[:1]
+            if slot and slot.sale_line_id:
+                sale_order = slot.sale_line_id.order_id
+                sale_order_line = slot.sale_line_id
 
         if not sale_order:
             sale_orders = self.partner_id.x_ongoing_bookings.x_ongoing_booking.sale_order_id
@@ -75,11 +78,11 @@ class PosOrder(models.Model):
             if not line.price_subtotal_incl:
                 continue
             if ratio <= 0:
-                folio_charge._create_from_pos_order_line(self, sale_order, line, "paid_pos")
+                folio_charge._create_from_pos_order_line(self, sale_order, line, "paid_pos", sale_order_line=sale_order_line)
             elif ratio >= 1:
-                folio_charge._create_from_pos_order_line(self, sale_order, line, "due")
+                folio_charge._create_from_pos_order_line(self, sale_order, line, "due", sale_order_line=sale_order_line)
             else:
                 due_amount = line.price_subtotal_incl * ratio
                 paid_amount = line.price_subtotal_incl - due_amount
-                folio_charge._create_from_pos_order_line(self, sale_order, line, "due", amount=due_amount)
-                folio_charge._create_from_pos_order_line(self, sale_order, line, "paid_pos", amount=paid_amount)
+                folio_charge._create_from_pos_order_line(self, sale_order, line, "due", amount=due_amount, sale_order_line=sale_order_line)
+                folio_charge._create_from_pos_order_line(self, sale_order, line, "paid_pos", amount=paid_amount, sale_order_line=sale_order_line)
