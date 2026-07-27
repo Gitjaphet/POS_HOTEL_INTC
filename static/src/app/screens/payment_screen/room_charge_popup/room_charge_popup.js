@@ -36,8 +36,8 @@ export class RoomChargePopup extends Component {
         );
     }
 
-    selectOccupant(partner) {
-        this.props.getPayload(partner);
+    selectOccupant(room, partner) {
+        this.props.getPayload({ partner, room });
         this.props.close();
     }
 }
