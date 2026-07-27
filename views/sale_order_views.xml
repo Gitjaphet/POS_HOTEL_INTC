@@ -33,12 +33,14 @@
                     class="btn-primary"
                     context="{'default_sale_order_id': id}"
                     invisible="x_folio_total_due &lt;= 0"/>
+            <!-- TODO: réactiver une fois le wizard de dérogation check-out créé
             <button name="%(checkout_override_wizard_action)d"
                     string="Forcer le check-out"
                     type="action"
                     class="btn-secondary"
                     context="{'default_sale_order_id': id}"
                     invisible="x_folio_total_due &lt;= 0"/>
+            -->
           </div>
           <div class="oe_right" style="text-align: right; margin-top: 8px;">
             <strong>Total Extra Payé : </strong>
