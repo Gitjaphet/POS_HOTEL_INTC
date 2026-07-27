@@ -7,7 +7,12 @@ class PosSession(models.Model):
     @api.model
     def _load_pos_data_models(self, config):
         models_list = super()._load_pos_data_models(config)
-        return models_list + ["resource.resource"]
+        if "pos.order" in models_list:
+            idx = models_list.index("pos.order")
+            models_list.insert(idx, "resource.resource")
+        else:
+            models_list.append("resource.resource")
+        return models_list
 
     def _get_split_receivable_vals(self, payment, amount, amount_converted):
         vals = super()._get_split_receivable_vals(payment, amount, amount_converted)

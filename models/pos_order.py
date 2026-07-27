@@ -11,7 +11,7 @@ class PosOrder(models.Model):
 
     def _load_pos_data_fields(self, config):
         fields = super()._load_pos_data_fields(config)
-        #fields.append("x_room_charge_resource_id")
+        fields.append("x_room_charge_resource_id")
         return fields
 
     def _process_saved_order(self, draft):
