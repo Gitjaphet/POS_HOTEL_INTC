@@ -13,6 +13,8 @@ class SaleOrderLine(models.Model):
         compute='_compute_x_room_resource_ids',
         string="Chambre(s)",
     )
+    x_room_start_date = fields.Datetime(string="Début séjour (chambre)")
+    x_room_return_date = fields.Datetime(string="Fin séjour (chambre)")
 
     @api.depends('planning_slot_ids.resource_id')
     def _compute_x_room_resource_ids(self):
@@ -20,6 +22,15 @@ class SaleOrderLine(models.Model):
             resources = line.planning_slot_ids.resource_id
             line.x_room_resource_ids = resources
             line.x_room_resource_names = ", ".join(resources.mapped('name'))
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        lines = super().create(vals_list)
+        for line in lines:
+            if line.product_id.planning_role_id.x_is_a_room_offer and not line.x_room_start_date:
+                line.x_room_start_date = line.start_date
+                line.x_room_return_date = line.return_date
+        return lines
 
     def _planning_slot_vals_list_per_sol(self):
         vals_list_per_sol = super()._planning_slot_vals_list_per_sol()
