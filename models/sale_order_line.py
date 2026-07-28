@@ -14,6 +14,11 @@ class SaleOrderLine(models.Model):
         compute='_compute_x_room_resource_ids',
         string="Chambre(s)",
     )
+    x_room_nights = fields.Integer(
+            string="Nuits",
+            compute='_compute_x_room_nights',
+            store=True,
+        )
     x_is_a_room_offer = fields.Boolean(
         related='product_id.planning_role_id.x_is_a_room_offer',
         store=True,
@@ -128,3 +133,32 @@ class SaleOrderLine(models.Model):
             )
 
         return vals_list_per_sol
+
+
+    @api.depends('x_room_start_date', 'x_room_return_date')
+    def _compute_x_room_nights(self):
+        for line in self:
+            if line.x_room_start_date and line.x_room_return_date:
+                delta = line.x_room_return_date - line.x_room_start_date
+                line.x_room_nights = max(1, delta.days + (1 if delta.seconds else 0))
+            else:
+                line.x_room_nights = 0
+
+    def _get_pricelist_price(self):
+        if self.is_rental and self.x_is_a_room_offer and self.x_room_start_date and self.x_room_return_date:
+            self.order_id._rental_set_dates()
+            return self.order_id.pricelist_id._get_product_price(
+                self.product_id.with_context(**self._get_product_price_context()),
+                self.product_uom_qty or 1.0,
+                currency=self.currency_id,
+                uom=self.product_uom_id,
+                date=self.order_id.date_order or fields.Date.today(),
+                start_date=self.x_room_start_date,
+                end_date=self.x_room_return_date,
+            )
+        return super()._get_pricelist_price()
+
+    @api.onchange('x_room_start_date', 'x_room_return_date')
+    def _onchange_x_room_dates_update_price(self):
+        if self.is_rental and self.x_is_a_room_offer and self.x_room_start_date and self.x_room_return_date:
+            self.price_unit = self._get_pricelist_price()
