@@ -20,7 +20,7 @@ patch(PaymentScreen.prototype, {
         const result = await makeAwaitable(this.dialog, RoomChargePopup, {});
         if (result) {
             this.pos.setPartnerToCurrentOrder(result.partner);
-            this.pos.get_order().update({ x_room_charge_resource_id_int: result.room.id });
+            this.currentOrder.update({ x_room_charge_resource_id_int: result.room.id });
         }
     },
 
@@ -31,7 +31,7 @@ patch(PaymentScreen.prototype, {
                 return false;
             }
             this.pos.setPartnerToCurrentOrder(result.partner);
-            this.pos.get_order().update({ x_room_charge_resource_id_int: result.room.id });
+            this.currentOrder.update({ x_room_charge_resource_id_int: result.room.id });
         }
         return super.addNewPaymentLine(...arguments);
     },
