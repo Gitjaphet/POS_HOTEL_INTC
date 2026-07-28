@@ -2,3 +2,4 @@ id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_pos_hotel_folio_charge_user,pos.hotel.folio.charge.user,model_pos_hotel_folio_charge,base.group_user,1,1,1,0
 access_pos_hotel_folio_charge_pos_user,pos.hotel.folio.charge.pos_user,model_pos_hotel_folio_charge,point_of_sale.group_pos_user,1,1,1,0
 access_pos_hotel_folio_settle_wizard_user,pos.hotel.folio.settle.wizard.user,model_pos_hotel_folio_settle_wizard,base.group_user,1,1,1,1
+access_pos_hotel_order_cancel_wizard_user,pos.hotel.order.cancel.wizard.user,model_pos_hotel_order_cancel_wizard,base.group_user,1,1,1,1
