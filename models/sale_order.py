@@ -31,6 +31,31 @@ class SaleOrder(models.Model):
         compute="_compute_folio_totals",
         help="Somme des consommations encore dues au réceptionniste.",
     )
+    x_folio_period_start = fields.Datetime(
+        string="Début période Folio",
+        compute="_compute_folio_period",
+        store=True,
+        help="Date de début la plus ancienne parmi tous les planning.slot des chambres du folio.",
+    )
+    x_folio_period_end = fields.Datetime(
+        string="Fin période Folio",
+        compute="_compute_folio_period",
+        store=True,
+        help="Date de fin la plus tardive parmi tous les planning.slot des chambres du folio.",
+    )
+
+    @api.depends(
+        "order_line.planning_slot_ids.start_datetime",
+        "order_line.planning_slot_ids.end_datetime",
+        "order_line.planning_slot_ids.role_id.x_is_a_room_offer",
+    )
+    def _compute_folio_period(self):
+        for order in self:
+            room_slots = order.order_line.planning_slot_ids.filtered(
+                lambda s: s.role_id.x_is_a_room_offer and s.start_datetime and s.end_datetime
+            )
+            order.x_folio_period_start = min(room_slots.mapped("start_datetime")) if room_slots else False
+            order.x_folio_period_end = max(room_slots.mapped("end_datetime")) if room_slots else False
 
     @api.depends(
         "x_folio_charge_normal_ids.amount_net",
