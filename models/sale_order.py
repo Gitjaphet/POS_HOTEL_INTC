@@ -81,3 +81,20 @@ class SaleOrder(models.Model):
             order.x_folio_total_due = sum(
                 charges.filtered(lambda c: c.payment_status == "due").mapped("amount_net")
             )
+
+
+    def action_open_cancel_wizard(self):
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": "Annuler la commande",
+            "res_model": "pos.hotel.order.cancel.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {"default_sale_order_id": self.id},
+        }
+
+    def _action_cancel(self):
+        res = super()._action_cancel()
+        self.order_line.planning_slot_ids.unlink()
+        return res
