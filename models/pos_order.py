@@ -26,8 +26,16 @@ class PosOrder(models.Model):
 
     def _load_pos_data_fields(self, config):
         fields = super()._load_pos_data_fields(config)
-        fields.append("x_room_charge_resource_id_int")
-        return fields
+        if fields:
+            fields.append("x_room_charge_resource_id_int")
+            return fields
+        # super() a renvoyé [] : c'est un signal spécial "charger tous les champs"
+        # (voir pos_load_mixin.py et pos_session.py._load_pos_data_relations).
+        # Transformer [] en liste courte casserait _load_pos_data_relations pour
+        # tous les champs natifs (lines, partner_id, etc. deviendraient invisibles
+        # côté frontend). On énumère donc explicitement tous les champs du modèle
+        # (natifs + custom) pour préserver ce comportement "tout inclure".
+        return list(self._fields.keys())
 
     def _process_saved_order(self, draft):
         order_id = super()._process_saved_order(draft)
