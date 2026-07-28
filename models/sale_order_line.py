@@ -15,6 +15,11 @@ class SaleOrderLine(models.Model):
     )
     x_room_start_date = fields.Datetime(string="Début séjour (chambre)")
     x_room_return_date = fields.Datetime(string="Fin séjour (chambre)")
+    x_is_room_line = fields.Boolean(
+        related='product_id.planning_role_id.x_is_a_room_offer',
+        store=True,
+        string="Ligne chambre",
+    )
 
     @api.depends('planning_slot_ids.resource_id')
     def _compute_x_room_resource_ids(self):
