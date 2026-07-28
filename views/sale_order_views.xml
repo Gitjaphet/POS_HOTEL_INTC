@@ -58,4 +58,23 @@
       </xpath>
     </field>
   </record>
+  <record id="sale_order_view_inherit_pos_hotel_intc_folio_period" model="ir.ui.view">
+    <field name="name">sale.order.form.inherit.pos.hotel.intc.folio.period</field>
+    <field name="model">sale.order</field>
+    <field name="inherit_id" ref="sale.view_order_form"/>
+    <field name="mode">extension</field>
+    <field name="priority">171</field>
+    <field name="arch" type="xml">
+      <xpath expr="//field[@name='rental_start_date']" position="after">
+        <field name="x_folio_period_start"
+               string="Début Folio (multi-chambres)"
+               readonly="1"
+               invisible="not x_folio_is_multi_room"/>
+        <field name="x_folio_period_end"
+               string="Fin Folio (multi-chambres)"
+               readonly="1"
+               invisible="not x_folio_is_multi_room"/>
+      </xpath>
+    </field>
+  </record>
 </odoo>

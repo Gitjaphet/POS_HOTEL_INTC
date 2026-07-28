@@ -43,6 +43,12 @@ class SaleOrder(models.Model):
         store=True,
         help="Date de fin la plus tardive parmi tous les planning.slot des chambres du folio.",
     )
+    x_folio_is_multi_room = fields.Boolean(
+        string="Folio multi-chambres",
+        compute="_compute_folio_period",
+        store=True,
+        help="Vrai si le folio contient au moins 2 chambres avec des périodes de séjour distinctes.",
+    )
 
     @api.depends(
         "order_line.planning_slot_ids.start_datetime",
@@ -54,8 +60,13 @@ class SaleOrder(models.Model):
             room_slots = order.order_line.planning_slot_ids.filtered(
                 lambda s: s.role_id.x_is_a_room_offer and s.start_datetime and s.end_datetime
             )
-            order.x_folio_period_start = min(room_slots.mapped("start_datetime")) if room_slots else False
-            order.x_folio_period_end = max(room_slots.mapped("end_datetime")) if room_slots else False
+            starts = room_slots.mapped("start_datetime")
+            ends = room_slots.mapped("end_datetime")
+            order.x_folio_period_start = min(starts) if starts else False
+            order.x_folio_period_end = max(ends) if ends else False
+            order.x_folio_is_multi_room = len(room_slots) > 1 and (
+                len(set(starts)) > 1 or len(set(ends)) > 1
+            )
 
     @api.depends(
         "x_folio_charge_normal_ids.amount_net",
