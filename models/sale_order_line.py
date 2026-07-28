@@ -1,4 +1,5 @@
 from odoo import api, fields, models
+from odoo.exceptions import ValidationError
 
 
 class SaleOrderLine(models.Model):
@@ -13,13 +14,13 @@ class SaleOrderLine(models.Model):
         compute='_compute_x_room_resource_ids',
         string="Chambre(s)",
     )
-    x_room_start_date = fields.Datetime(string="Début séjour (chambre)")
-    x_room_return_date = fields.Datetime(string="Fin séjour (chambre)")
-    x_is_room_line = fields.Boolean(
+    x_is_a_room_offer = fields.Boolean(
         related='product_id.planning_role_id.x_is_a_room_offer',
         store=True,
-        string="Ligne chambre",
+        string="Est une chambre",
     )
+    x_room_start_date = fields.Datetime(string="Début séjour (chambre)")
+    x_room_return_date = fields.Datetime(string="Fin séjour (chambre)")
 
     @api.depends('planning_slot_ids.resource_id')
     def _compute_x_room_resource_ids(self):
@@ -28,11 +29,21 @@ class SaleOrderLine(models.Model):
             line.x_room_resource_ids = resources
             line.x_room_resource_names = ", ".join(resources.mapped('name'))
 
+    @api.constrains('x_room_start_date', 'x_room_return_date')
+    def _check_x_room_dates(self):
+        for line in self:
+            if line.x_room_start_date and line.x_room_return_date:
+                if line.x_room_return_date <= line.x_room_start_date:
+                    raise ValidationError(
+                        "La date de fin de séjour doit être postérieure à la date de début, "
+                        f"pour la ligne « {line.product_id.name} »."
+                    )
+
     @api.model_create_multi
     def create(self, vals_list):
         lines = super().create(vals_list)
         for line in lines:
-            if line.product_id.planning_role_id.x_is_a_room_offer and not line.x_room_start_date:
+            if line.x_is_a_room_offer and not line.x_room_start_date:
                 line.x_room_start_date = line.start_date
                 line.x_room_return_date = line.return_date
         return lines
