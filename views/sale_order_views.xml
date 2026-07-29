@@ -13,7 +13,7 @@
             <list create="0" delete="0" default_group_by="payment_status">
               <field name="date"/>
               <field name="name"/>
-              <field name="partner_id"/>
+              <field name="occupant_display"/>
               <field name="pos_config_id" string="Point de Vente"/>
               <field name="amount_net" string="Montant" sum="Total"/>
               <field name="refund_status" widget="badge"

@@ -51,6 +51,12 @@ class PosHotelFolioCharge(models.Model):
         help="Ressource physique (chambre) précise ayant consommé cette charge, "
              "distincte de sale_order_line_id qui peut regrouper plusieurs chambres.",
     )
+    occupant_display = fields.Char(
+        string="Occupant",
+        compute="_compute_occupant_display",
+        store=True,
+        help="Nom du client suivi de la chambre précise ('Client - Chambre 401').",
+    )
     amount = fields.Monetary(
         string="Montant",
         required=True,
@@ -144,6 +150,14 @@ class PosHotelFolioCharge(models.Model):
                 charge.refund_status = "full"
             else:
                 charge.refund_status = "partial"
+
+    @api.depends("partner_id", "x_room_resource_id")
+    def _compute_occupant_display(self):
+        for charge in self:
+            if charge.partner_id and charge.x_room_resource_id:
+                charge.occupant_display = f"{charge.partner_id.name} - Chambre {charge.x_room_resource_id.name}"
+            else:
+                charge.occupant_display = charge.partner_id.name or ""
 
     @api.model
     def _create_from_pos_order_line(self, pos_order, sale_order, line, payment_status, amount=None, sale_order_line=None, room_resource=None):
