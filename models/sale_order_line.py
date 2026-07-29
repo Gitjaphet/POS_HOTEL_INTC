@@ -219,6 +219,7 @@ class SaleOrderLine(models.Model):
 
             unavailable_resource_slots = self.env['planning.slot'].search([
                 ('resource_id', 'in', available_resources.ids),
+                ('sale_line_id', '!=', False),
                 ('start_datetime', '<=', sol.x_room_return_date),
                 ('end_datetime', '>=', sol.x_room_start_date),
             ])
