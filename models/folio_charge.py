@@ -43,6 +43,14 @@ class PosHotelFolioCharge(models.Model):
         index=True,
         help="Ligne de la réservation (chambre précise) à laquelle cette charge doit être imputée, pour une facturation séparée par chambre.",
     )
+    x_room_resource_id = fields.Many2one(
+        "resource.resource",
+        string="Chambre (ressource précise)",
+        ondelete="restrict",
+        index=True,
+        help="Ressource physique (chambre) précise ayant consommé cette charge, "
+             "distincte de sale_order_line_id qui peut regrouper plusieurs chambres.",
+    )
     amount = fields.Monetary(
         string="Montant",
         required=True,
@@ -138,24 +146,26 @@ class PosHotelFolioCharge(models.Model):
                 charge.refund_status = "partial"
 
     @api.model
-    def _create_from_pos_order_line(self, pos_order, sale_order, line, payment_status, amount=None, sale_order_line=None):
+    def _create_from_pos_order_line(self, pos_order, sale_order, line, payment_status, amount=None, sale_order_line=None, room_resource=None):
         return self.create({
             "name": line.full_product_name or line.product_id.display_name,
             "sale_order_id": sale_order.id,
             "sale_order_line_id": sale_order_line.id if sale_order_line else False,
+            "x_room_resource_id": room_resource.id if room_resource else False,
             "partner_id": pos_order.partner_id.id,
             "pos_order_id": pos_order.id,
             "pos_order_line_id": line.id,
             "amount": amount if amount is not None else line.price_subtotal_incl,
             "payment_status": payment_status,
         })
-
+    
     @api.model
     def _create_refund_from_charge(self, original_charge, pos_order, refund_line, ratio):
         return self.create({
             "name": f"Remboursement — {original_charge.name}",
             "sale_order_id": original_charge.sale_order_id.id,
             "sale_order_line_id": original_charge.sale_order_line_id.id,
+            "x_room_resource_id": original_charge.x_room_resource_id.id,
             "partner_id": original_charge.partner_id.id,
             "pos_order_id": pos_order.id,
             "pos_order_line_id": refund_line.id,

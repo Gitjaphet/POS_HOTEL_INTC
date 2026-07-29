@@ -101,11 +101,11 @@ class PosOrder(models.Model):
             if not line.price_subtotal_incl:
                 continue
             if ratio <= 0:
-                folio_charge._create_from_pos_order_line(self, sale_order, line, "paid_pos", sale_order_line=sale_order_line)
+                folio_charge._create_from_pos_order_line(self, sale_order, line, "paid_pos", sale_order_line=sale_order_line, room_resource=resource)
             elif ratio >= 1:
-                folio_charge._create_from_pos_order_line(self, sale_order, line, "due", sale_order_line=sale_order_line)
+                folio_charge._create_from_pos_order_line(self, sale_order, line, "due", sale_order_line=sale_order_line, room_resource=resource)
             else:
                 due_amount = line.price_subtotal_incl * ratio
                 paid_amount = line.price_subtotal_incl - due_amount
-                folio_charge._create_from_pos_order_line(self, sale_order, line, "due", amount=due_amount, sale_order_line=sale_order_line)
-                folio_charge._create_from_pos_order_line(self, sale_order, line, "paid_pos", amount=paid_amount, sale_order_line=sale_order_line)
+                folio_charge._create_from_pos_order_line(self, sale_order, line, "due", amount=due_amount, sale_order_line=sale_order_line, room_resource=resource)
+                folio_charge._create_from_pos_order_line(self, sale_order, line, "paid_pos", amount=paid_amount, sale_order_line=sale_order_line, room_resource=resource)
