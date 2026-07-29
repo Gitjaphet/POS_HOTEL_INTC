@@ -83,52 +83,79 @@ class SaleOrderLine(models.Model):
             )
         res = super().write(vals)
         if lines_to_check:
-            lines_to_check._generate_missing_room_slots()
+            lines_to_check._generate_missing_room_slots(
+                forced_resource_id=self.env.context.get('x_forced_room_resource_id')
+            )
         return res
 
-    def _generate_missing_room_slots(self):
+    def _get_free_room_resources(self):
+        """Ressources (chambres) du rôle produit de cette ligne, libres sur
+        x_room_start_date/x_room_return_date, hors ressources déjà utilisées par la ligne."""
+        self.ensure_one()
+        role = self.product_id.planning_role_id
+        available_resources = role.resource_ids
+        if not available_resources or not self.x_room_start_date or not self.x_room_return_date:
+            return self.env['resource.resource']
+
+        already_used = self.planning_slot_ids.resource_id
+        unavailable_resource_slots = self.env['planning.slot'].search([
+            ('resource_id', 'in', available_resources.ids),
+            ('sale_line_id', '!=', self.id),
+            ('start_datetime', '<=', self.x_room_return_date),
+            ('end_datetime', '>=', self.x_room_start_date),
+        ])
+        resource_leaves = self.env['resource.calendar.leaves'].search([
+            ('resource_id', 'in', available_resources.ids),
+            ('date_from', '<=', self.x_room_return_date),
+            ('date_to', '>=', self.x_room_start_date),
+        ])
+        return available_resources - already_used - (
+            unavailable_resource_slots.resource_id + resource_leaves.resource_id
+        )
+
+    def _generate_missing_room_slots(self, forced_resource_id=None):
         for sol in self:
             needed = max(1, int(sol.product_uom_qty)) - len(sol.planning_slot_ids)
             if needed <= 0 or not sol.x_room_start_date or not sol.x_room_return_date:
                 continue
 
-            role = sol.product_id.planning_role_id
-            available_resources = role.resource_ids
-            if not available_resources:
-                raise ValidationError(
-                    self.env._("Aucune ressource disponible pour : %(product_name)s.", product_name=sol.product_id.name)
-                )
+            free_resources = sol._get_free_room_resources()
 
-            already_used = sol.planning_slot_ids.resource_id
-
-            unavailable_resource_slots = self.env['planning.slot'].search([
-                ('resource_id', 'in', available_resources.ids),
-                ('sale_line_id', '!=', sol.id),
-                ('start_datetime', '<=', sol.x_room_return_date),
-                ('end_datetime', '>=', sol.x_room_start_date),
-            ])
-            resource_leaves = self.env['resource.calendar.leaves'].search([
-                ('resource_id', 'in', available_resources.ids),
-                ('date_from', '<=', sol.x_room_return_date),
-                ('date_to', '>=', sol.x_room_start_date),
-            ])
-            free_resources = available_resources - already_used - (
-                unavailable_resource_slots.resource_id + resource_leaves.resource_id
-            )
-
-            if len(free_resources) < needed:
-                raise ValidationError(
-                    self.env._(
-                        "Impossible d'ajouter %(needed)s chambre(s) supplémentaire(s) pour %(product_name)s : "
-                        "pas assez de ressources disponibles sur cette période.",
-                        needed=needed, product_name=sol.product_id.name,
+            if forced_resource_id:
+                resources_to_assign = free_resources.filtered(lambda r: r.id == forced_resource_id)
+                if not resources_to_assign:
+                    raise ValidationError(
+                        self.env._(
+                            "La chambre choisie n'est plus disponible sur cette période pour %(product_name)s.",
+                            product_name=sol.product_id.name,
+                        )
                     )
-                )
+            else:
+                if len(free_resources) < needed:
+                    raise ValidationError(
+                        self.env._(
+                            "Impossible d'ajouter %(needed)s chambre(s) supplémentaire(s) pour %(product_name)s : "
+                            "pas assez de ressources disponibles sur cette période.",
+                            needed=needed, product_name=sol.product_id.name,
+                        )
+                    )
+                resources_to_assign = free_resources[:needed]
 
-            for resource in free_resources[:needed]:
+            for resource in resources_to_assign:
                 vals = sol._planning_slot_values()
                 vals['resource_id'] = resource.id
                 self.env['planning.slot'].create(vals)
+
+    def action_open_add_room_wizard(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': "Ajouter une chambre",
+            'res_model': 'pos.hotel.add.room.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_sale_order_line_id': self.id},
+        }
 
     def _planning_slot_values(self):
         vals = super()._planning_slot_values()

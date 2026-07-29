@@ -9,6 +9,7 @@
         "views/pos_payment_method_views.xml",
         "wizards/folio_settle_wizard_views.xml",
         "wizards/order_cancel_wizard_views.xml",
+        "wizards/add_room_wizard_views.xml",
         "views/sale_order_views.xml",
     ],
     "assets": {

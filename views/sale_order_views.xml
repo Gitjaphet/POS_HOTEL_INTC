@@ -144,4 +144,21 @@
         </xpath>
     </field>
   </record>
+
+  <record id="sale_order_line_view_inherit_pos_hotel_intc_add_room_button" model="ir.ui.view">
+    <field name="name">sale.order.line.list.inherit.pos.hotel.intc.add.room.button</field>
+    <field name="model">sale.order</field>
+    <field name="inherit_id" ref="sale.view_order_form"/>
+    <field name="mode">extension</field>
+    <field name="priority">174</field>
+    <field name="arch" type="xml">
+        <xpath expr="//field[@name='order_line']//list//field[@name='x_room_resource_names']" position="after">
+            <button name="action_open_add_room_wizard"
+                    type="object"
+                    icon="fa-plus-circle"
+                    title="Ajouter une chambre"
+                    invisible="not x_is_a_room_offer or parent.state != 'sale' or parent.locked"/>
+        </xpath>
+    </field>
+  </record>
 </odoo>
