@@ -160,9 +160,14 @@ class SaleOrderLine(models.Model):
     def _planning_slot_values(self):
         vals = super()._planning_slot_values()
         if self.is_rental and self.x_is_a_room_offer and self.x_room_start_date and self.x_room_return_date:
+            allocated_hours = (
+                self.x_room_return_date - self.x_room_start_date
+            ).total_seconds() / 3600.0
             vals.update(
                 start_datetime=self.x_room_start_date,
                 end_datetime=self.x_room_return_date,
+                allocated_hours=allocated_hours,
+                allocated_percentage=100,
             )
         return vals
 
