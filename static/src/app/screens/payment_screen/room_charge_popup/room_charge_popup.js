@@ -21,7 +21,8 @@ export class RoomChargePopup extends Component {
         const rows = [];
 
         for (const room of rooms) {
-            for (const partner of room.x_occupant_ids) {
+            const partner = room.x_current_partner_id;
+            if (partner) {
                 rows.push({ room, partner });
             }
         }
