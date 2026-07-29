@@ -75,6 +75,61 @@ class SaleOrderLine(models.Model):
                 line.x_room_return_date = line.return_date
         return lines
 
+    def write(self, vals):
+        lines_to_check = self.env['sale.order.line']
+        if 'product_uom_qty' in vals:
+            lines_to_check = self.filtered(
+                lambda sol: sol.is_rental and sol.x_is_a_room_offer and sol.order_id.state == 'sale'
+            )
+        res = super().write(vals)
+        if lines_to_check:
+            lines_to_check._generate_missing_room_slots()
+        return res
+
+    def _generate_missing_room_slots(self):
+        for sol in self:
+            needed = max(1, int(sol.product_uom_qty)) - len(sol.planning_slot_ids)
+            if needed <= 0 or not sol.x_room_start_date or not sol.x_room_return_date:
+                continue
+
+            role = sol.product_id.planning_role_id
+            available_resources = role.resource_ids
+            if not available_resources:
+                raise ValidationError(
+                    self.env._("Aucune ressource disponible pour : %(product_name)s.", product_name=sol.product_id.name)
+                )
+
+            already_used = sol.planning_slot_ids.resource_id
+
+            unavailable_resource_slots = self.env['planning.slot'].search([
+                ('resource_id', 'in', available_resources.ids),
+                ('sale_line_id', '!=', sol.id),
+                ('start_datetime', '<=', sol.x_room_return_date),
+                ('end_datetime', '>=', sol.x_room_start_date),
+            ])
+            resource_leaves = self.env['resource.calendar.leaves'].search([
+                ('resource_id', 'in', available_resources.ids),
+                ('date_from', '<=', sol.x_room_return_date),
+                ('date_to', '>=', sol.x_room_start_date),
+            ])
+            free_resources = available_resources - already_used - (
+                unavailable_resource_slots.resource_id + resource_leaves.resource_id
+            )
+
+            if len(free_resources) < needed:
+                raise ValidationError(
+                    self.env._(
+                        "Impossible d'ajouter %(needed)s chambre(s) supplémentaire(s) pour %(product_name)s : "
+                        "pas assez de ressources disponibles sur cette période.",
+                        needed=needed, product_name=sol.product_id.name,
+                    )
+                )
+
+            for resource in free_resources[:needed]:
+                vals = sol._planning_slot_values()
+                vals['resource_id'] = resource.id
+                self.env['planning.slot'].create(vals)
+
     def _planning_slot_values(self):
         vals = super()._planning_slot_values()
         if self.is_rental and self.x_is_a_room_offer and self.x_room_start_date and self.x_room_return_date:
