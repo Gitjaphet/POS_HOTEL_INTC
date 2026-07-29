@@ -15,10 +15,15 @@ class SaleOrderLine(models.Model):
         string="Chambre(s)",
     )
     x_room_nights = fields.Integer(
-            string="Nuits",
-            compute='_compute_x_room_nights',
-            store=True,
-        )
+        string="Nuits",
+        compute='_compute_x_room_nights',
+        store=True,
+    )
+    x_room_price_per_night = fields.Monetary(
+        string="Prix / nuit",
+        compute='_compute_x_room_price_per_night',
+        currency_field='currency_id',
+    )
     x_is_a_room_offer = fields.Boolean(
         related='product_id.planning_role_id.x_is_a_room_offer',
         store=True,
@@ -33,6 +38,23 @@ class SaleOrderLine(models.Model):
             resources = line.planning_slot_ids.resource_id
             line.x_room_resource_ids = resources
             line.x_room_resource_names = ", ".join(resources.mapped('name'))
+
+    @api.depends('x_room_start_date', 'x_room_return_date')
+    def _compute_x_room_nights(self):
+        for line in self:
+            if line.x_room_start_date and line.x_room_return_date:
+                delta = line.x_room_return_date - line.x_room_start_date
+                line.x_room_nights = max(1, delta.days + (1 if delta.seconds else 0))
+            else:
+                line.x_room_nights = 0
+
+    @api.depends('price_unit', 'x_room_nights')
+    def _compute_x_room_price_per_night(self):
+        for line in self:
+            if line.x_is_a_room_offer and line.x_room_nights:
+                line.x_room_price_per_night = line.price_unit / line.x_room_nights
+            else:
+                line.x_room_price_per_night = 0.0
 
     @api.constrains('x_room_start_date', 'x_room_return_date')
     def _check_x_room_dates(self):
@@ -82,26 +104,6 @@ class SaleOrderLine(models.Model):
                 problematic_services.append(sol.product_id.name)
                 continue
 
-            # Réutilise un slot déjà cliqué dans le Planning (flux "Nouvelle commande")
-            orphan = self.env['planning.slot'].search([
-                ('resource_id', 'in', available_resources.ids),
-                ('sale_line_id', '=', False),
-                ('start_datetime', '<=', sol.x_room_return_date),
-                ('end_datetime', '>=', sol.x_room_start_date),
-            ], order='id desc', limit=1)
-
-            if orphan:
-                orphan.write({
-                    'sale_line_id': sol.id,
-                    'sale_order_id': sol.order_id.id,
-                    'state': 'published',
-                    'start_datetime': sol.x_room_start_date,
-                    'end_datetime': sol.x_room_return_date,
-                })
-                vals_list_per_sol[sol] = []
-                continue
-
-            # Disponibilité vérifiée sur la VRAIE période de la ligne, pas la période partagée
             unavailable_resource_slots = self.env['planning.slot'].search([
                 ('resource_id', 'in', available_resources.ids),
                 ('start_datetime', '<=', sol.x_room_return_date),
@@ -116,13 +118,45 @@ class SaleOrderLine(models.Model):
                 unavailable_resource_slots.resource_id + resource_leaves.resource_id
             )
 
-            if not free_resources:
+            nb_needed = max(1, int(sol.product_uom_qty))
+
+            if len(free_resources) < nb_needed:
                 problematic_services.append(sol.product_id.name)
                 continue
 
-            vals = sol._planning_slot_values()
-            vals['resource_id'] = free_resources[0].id
-            vals_list_per_sol[sol] = [vals]
+            # Réutilise en priorité les slots orphelins déjà cliqués dans le Planning
+            orphans = self.env['planning.slot'].search([
+                ('resource_id', 'in', free_resources.ids),
+                ('sale_line_id', '=', False),
+                ('start_datetime', '<=', sol.x_room_return_date),
+                ('end_datetime', '>=', sol.x_room_start_date),
+            ])
+
+            used_resource_ids = set()
+            for orphan in orphans:
+                if len(used_resource_ids) >= nb_needed:
+                    break
+                orphan.write({
+                    'sale_line_id': sol.id,
+                    'sale_order_id': sol.order_id.id,
+                    'state': 'published',
+                    'start_datetime': sol.x_room_start_date,
+                    'end_datetime': sol.x_room_return_date,
+                })
+                used_resource_ids.add(orphan.resource_id.id)
+
+            remaining_needed = nb_needed - len(used_resource_ids)
+            remaining_resources = [
+                r for r in free_resources if r.id not in used_resource_ids
+            ][:remaining_needed]
+
+            vals_list = []
+            for resource in remaining_resources:
+                vals = sol._planning_slot_values()
+                vals['resource_id'] = resource.id
+                vals_list.append(vals)
+
+            vals_list_per_sol[sol] = vals_list
 
         if problematic_services:
             raise ValidationError(
@@ -133,16 +167,6 @@ class SaleOrderLine(models.Model):
             )
 
         return vals_list_per_sol
-
-
-    @api.depends('x_room_start_date', 'x_room_return_date')
-    def _compute_x_room_nights(self):
-        for line in self:
-            if line.x_room_start_date and line.x_room_return_date:
-                delta = line.x_room_return_date - line.x_room_start_date
-                line.x_room_nights = max(1, delta.days + (1 if delta.seconds else 0))
-            else:
-                line.x_room_nights = 0
 
     def _get_pricelist_price(self):
         if self.is_rental and self.x_is_a_room_offer and self.x_room_start_date and self.x_room_return_date:
