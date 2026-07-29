@@ -81,12 +81,38 @@ class SaleOrderLine(models.Model):
             lines_to_check = self.filtered(
                 lambda sol: sol.is_rental and sol.x_is_a_room_offer and sol.order_id.state == 'sale'
             )
+
+        lines_to_sync_dates = self.env['sale.order.line']
+        if 'x_room_start_date' in vals or 'x_room_return_date' in vals:
+            lines_to_sync_dates = self.filtered(
+                lambda sol: sol.is_rental and sol.x_is_a_room_offer
+                and sol.order_id.state == 'sale' and sol.planning_slot_ids
+            )
+
         res = super().write(vals)
+
         if lines_to_check:
             lines_to_check._generate_missing_room_slots(
                 forced_resource_id=self.env.context.get('x_forced_room_resource_id')
             )
+        if lines_to_sync_dates:
+            lines_to_sync_dates._sync_existing_room_slots_dates()
+
         return res
+
+    def _sync_existing_room_slots_dates(self):
+        for sol in self:
+            if not sol.x_room_start_date or not sol.x_room_return_date:
+                continue
+            allocated_hours = (
+                sol.x_room_return_date - sol.x_room_start_date
+            ).total_seconds() / 3600.0
+            sol.planning_slot_ids.write({
+                'start_datetime': sol.x_room_start_date,
+                'end_datetime': sol.x_room_return_date,
+                'allocated_hours': allocated_hours,
+                'allocated_percentage': 100,
+            })
 
     def _get_free_room_resources(self):
         """Ressources (chambres) du rôle produit de cette ligne, libres sur
