@@ -3,3 +3,4 @@ access_pos_hotel_folio_charge_user,pos.hotel.folio.charge.user,model_pos_hotel_f
 access_pos_hotel_folio_charge_pos_user,pos.hotel.folio.charge.pos_user,model_pos_hotel_folio_charge,point_of_sale.group_pos_user,1,1,1,0
 access_pos_hotel_folio_settle_wizard_user,pos.hotel.folio.settle.wizard.user,model_pos_hotel_folio_settle_wizard,base.group_user,1,1,1,1
 access_pos_hotel_order_cancel_wizard_user,pos.hotel.order.cancel.wizard.user,model_pos_hotel_order_cancel_wizard,base.group_user,1,1,1,1
+access_pos_hotel_add_room_wizard_user,pos.hotel.add.room.wizard.user,model_pos_hotel_add_room_wizard,base.group_user,1,1,1,1
