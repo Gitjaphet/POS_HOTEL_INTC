@@ -91,7 +91,7 @@ class SaleOrderLine(models.Model):
             )
 
         lines_to_notify_occupancy = self.env['sale.order.line']
-        if 'qty_delivered' in vals or 'qty_returned' in vals:
+        if 'qty_delivered' in vals or 'qty_returned' in vals or 'x_room_start_date' in vals or 'x_room_return_date' in vals:
             lines_to_notify_occupancy = self.filtered(lambda sol: sol.x_is_a_room_offer)
 
         res = super().write(vals)
