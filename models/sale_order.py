@@ -97,4 +97,5 @@ class SaleOrder(models.Model):
     def _action_cancel(self):
         res = super()._action_cancel()
         self.order_line.planning_slot_ids.unlink()
+        self.order_line._notify_room_occupancy_change()
         return res

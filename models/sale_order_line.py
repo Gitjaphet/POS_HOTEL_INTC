@@ -73,8 +73,9 @@ class SaleOrderLine(models.Model):
             if line.x_is_a_room_offer and not line.x_room_start_date:
                 line.x_room_start_date = line.start_date
                 line.x_room_return_date = line.return_date
+        lines.filtered(lambda sol: sol.x_is_a_room_offer)._notify_room_occupancy_change()
         return lines
-
+    
     def write(self, vals):
         lines_to_check = self.env['sale.order.line']
         if 'product_uom_qty' in vals:
