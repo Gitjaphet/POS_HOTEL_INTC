@@ -192,5 +192,17 @@
     </field>
   </record>
 
+  <record id="sale_order_line_view_inherit_pos_hotel_intc_muted_removed" model="ir.ui.view">
+    <field name="name">sale.order.line.list.inherit.pos.hotel.intc.muted.removed</field>
+    <field name="model">sale.order</field>
+    <field name="inherit_id" ref="sale.view_order_form"/>
+    <field name="mode">extension</field>
+    <field name="priority">176</field>
+    <field name="arch" type="xml">
+        <xpath expr="//field[@name='order_line']//list" position="attributes">
+            <attribute name="decoration-muted">x_is_a_room_offer and product_uom_qty == 0</attribute>
+        </xpath>
+    </field>
+  </record>
   
 </odoo>
