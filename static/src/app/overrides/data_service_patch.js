@@ -12,11 +12,10 @@ patch(PosData.prototype, {
         if (!roomIds.length) {
             return;
         }
-        const records = await this.orm.read(
+        await this.read(
             "resource.resource",
             roomIds,
             ["id", "name", "x_occupant_ids", "x_current_partner_id"]
         );
-        this.models.connectNewData({ "resource.resource": records });
     },
 });
