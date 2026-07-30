@@ -89,6 +89,10 @@ class SaleOrderLine(models.Model):
                 and sol.order_id.state == 'sale' and sol.planning_slot_ids
             )
 
+        lines_to_notify_occupancy = self.env['sale.order.line']
+        if 'qty_delivered' in vals or 'qty_returned' in vals:
+            lines_to_notify_occupancy = self.filtered(lambda sol: sol.x_is_a_room_offer)
+
         res = super().write(vals)
 
         if lines_to_check:
@@ -97,8 +101,21 @@ class SaleOrderLine(models.Model):
             )
         if lines_to_sync_dates:
             lines_to_sync_dates._sync_existing_room_slots_dates()
+        if lines_to_notify_occupancy:
+            lines_to_notify_occupancy._notify_room_occupancy_change()
 
         return res
+
+    def _notify_room_occupancy_change(self):
+        for line in self:
+            sessions = self.env['pos.session'].search([
+                ('state', '=', 'opened'),
+                ('company_id', '=', line.company_id.id),
+            ])
+            for session in sessions:
+                session.config_id._notify('ROOM_OCCUPANCY_UPDATED', {
+                    'sale_order_line_id': line.id,
+                })
 
     def _sync_existing_room_slots_dates(self):
         for sol in self:
