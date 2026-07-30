@@ -21,6 +21,11 @@ class SaleOrder(models.Model):
         string="Remboursements",
         domain=[("is_refund", "=", True)],
     )
+    x_room_removal_log_ids = fields.One2many(
+        "pos.hotel.room.removal.log",
+        "sale_order_id",
+        string="Historique des chambres retirées",
+    )
     x_folio_total_paid = fields.Monetary(
         string="Total Extra Payé",
         compute="_compute_folio_totals",

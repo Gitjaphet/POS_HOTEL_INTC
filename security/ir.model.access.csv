@@ -5,3 +5,4 @@ access_pos_hotel_folio_settle_wizard_user,pos.hotel.folio.settle.wizard.user,mod
 access_pos_hotel_order_cancel_wizard_user,pos.hotel.order.cancel.wizard.user,model_pos_hotel_order_cancel_wizard,base.group_user,1,1,1,1
 access_pos_hotel_add_room_wizard_user,pos.hotel.add.room.wizard.user,model_pos_hotel_add_room_wizard,base.group_user,1,1,1,1
 access_pos_hotel_remove_room_wizard_user,pos.hotel.remove.room.wizard.user,model_pos_hotel_remove_room_wizard,base.group_user,1,1,1,1
+access_pos_hotel_room_removal_log_user,pos.hotel.room.removal.log.user,model_pos_hotel_room_removal_log,base.group_user,1,1,1,0

@@ -254,6 +254,17 @@ class SaleOrderLine(models.Model):
             due_charges.write({'payment_status': 'cancelled'})
 
         resource_name = slot.resource_id.name
+        resource = slot.resource_id
+        due_amount_at_removal = sum(due_charges.mapped('amount_net')) if due_charges else 0.0
+        self.env['pos.hotel.room.removal.log'].create({
+            'sale_order_id': self.order_id.id,
+            'sale_order_line_id': self.id,
+            'resource_id': resource.id,
+            'resource_name': resource_name,
+            'reason': reason,
+            'cancel_due_debt': cancel_due_debt,
+            'due_amount_at_removal': due_amount_at_removal,
+        })
         slot.unlink()
         self.write({'product_uom_qty': self.product_uom_qty - 1})
         self.order_id.message_post(
