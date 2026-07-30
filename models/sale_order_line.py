@@ -261,6 +261,7 @@ class SaleOrderLine(models.Model):
                 f"Motif : {reason}"
                 + (f" Dette annulée sur {len(due_charges)} charge(s)." if due_charges and cancel_due_debt else "")
         )
+        self._notify_room_occupancy_change()
 
     def _planning_slot_values(self):
         vals = super()._planning_slot_values()
