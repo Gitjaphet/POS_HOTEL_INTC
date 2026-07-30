@@ -201,6 +201,67 @@ class SaleOrderLine(models.Model):
             'context': {'default_sale_order_line_id': self.id},
         }
 
+    def action_open_remove_room_wizard(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': "Retirer une chambre",
+            'res_model': 'pos.hotel.remove.room.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_sale_order_line_id': self.id,
+            },
+        }
+
+    def action_remove_room(self, resource_id, reason, cancel_due_debt=False):
+        self.ensure_one()
+        slot = self.planning_slot_ids.filtered(lambda s: s.resource_id.id == resource_id)
+        if not slot:
+            raise ValidationError("Cette chambre n'est pas liée à cette ligne.")
+
+        folio_charge = self.env['pos.hotel.folio.charge']
+        ambiguous = folio_charge.search([
+            ('sale_order_line_id', '=', self.id),
+            ('x_room_resource_id', '=', False),
+        ])
+        if ambiguous:
+            raise ValidationError(
+                "Impossible de retirer cette chambre : des consommations liées à cette ligne "
+                "ne sont pas rattachées à une chambre précise (données ambiguës). "
+                "Vérifiez ces charges manuellement avant de continuer."
+            )
+
+        charges = folio_charge.search([
+            ('sale_order_line_id', '=', self.id),
+            ('x_room_resource_id', '=', resource_id),
+        ])
+        paid_charges = charges.filtered(lambda c: c.payment_status == 'paid_pos')
+        if paid_charges:
+            raise ValidationError(
+                "Cette chambre a des extras payés au POS non remboursés. "
+                "Effectuez d'abord le remboursement via le POS avant de retirer la chambre."
+            )
+        settled_charges = charges.filtered(lambda c: c.payment_status == 'settled')
+        if settled_charges:
+            raise ValidationError(
+                "Cette chambre a des extras réglés (compte 411200) à rembourser. "
+                "Cette fonctionnalité arrive dans une prochaine étape."
+            )
+
+        due_charges = charges.filtered(lambda c: c.payment_status == 'due')
+        if due_charges and cancel_due_debt:
+            due_charges.write({'payment_status': 'cancelled'})
+
+        resource_name = slot.resource_id.name
+        slot.unlink()
+        self.write({'product_uom_qty': self.product_uom_qty - 1})
+        self.order_id.message_post(
+            body=f"Chambre {resource_name} retirée de la ligne « {self.product_id.name} ». "
+                f"Motif : {reason}"
+                + (f" Dette annulée sur {len(due_charges)} charge(s)." if due_charges and cancel_due_debt else "")
+        )
+
     def _planning_slot_values(self):
         vals = super()._planning_slot_values()
         if self.is_rental and self.x_is_a_room_offer and self.x_room_start_date and self.x_room_return_date:

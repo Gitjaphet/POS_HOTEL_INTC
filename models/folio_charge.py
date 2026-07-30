@@ -75,6 +75,7 @@ class PosHotelFolioCharge(models.Model):
             ("paid_pos", "Payé au POS"),
             ("due", "Dû"),
             ("settled", "Réglé"),
+            ("cancelled", "Annulée (chambre retirée)"),
         ],
         string="Statut",
         required=True,

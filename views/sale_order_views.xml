@@ -158,6 +158,11 @@
                     icon="fa-plus-circle"
                     title="Ajouter une chambre"
                     invisible="not x_is_a_room_offer or parent.state != 'sale' or parent.locked"/>
+            <button name="action_open_remove_room_wizard"
+                    type="object"
+                    icon="fa-minus-circle"
+                    title="Retirer une chambre"
+                    invisible="not x_is_a_room_offer or parent.state != 'sale' or parent.locked"/>
         </xpath>
     </field>
   </record>

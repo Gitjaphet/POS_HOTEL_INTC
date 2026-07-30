@@ -10,6 +10,7 @@
         "wizards/folio_settle_wizard_views.xml",
         "wizards/order_cancel_wizard_views.xml",
         "wizards/add_room_wizard_views.xml",
+        "wizards/remove_room_wizard_views.xml",
         "views/sale_order_views.xml",
     ],
     "assets": {

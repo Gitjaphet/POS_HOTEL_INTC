@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_pos_hotel_remove_room_wizard_form" model="ir.ui.view">
+        <field name="name">pos.hotel.remove.room.wizard.form</field>
+        <field name="model">pos.hotel.remove.room.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Retirer une chambre">
+                <group>
+                    <field name="sale_order_line_id" invisible="1"/>
+                    <field name="available_resource_ids" invisible="1"/>
+                    <field name="currency_id" invisible="1"/>
+                    <field name="resource_id"/>
+                    <field name="due_amount"/>
+                    <field name="cancel_due_debt" invisible="not due_amount"/>
+                    <field name="reason"/>
+                </group>
+                <footer>
+                    <button string="Retirer la chambre"
+                            name="action_confirm_remove_room"
+                            type="object"
+                            class="btn-primary"/>
+                    <button string="Retour"
+                            special="cancel"
+                            class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>
