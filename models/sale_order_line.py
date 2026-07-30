@@ -254,14 +254,26 @@ class SaleOrderLine(models.Model):
             due_charges.write({'payment_status': 'cancelled'})
 
         resource_name = slot.resource_id.name
+        product_name = self.product_id.name
+        order = self.order_id
+        remaining_qty = self.product_uom_qty - 1
+        due_count = len(due_charges) if (due_charges and cancel_due_debt) else 0
+
         slot.unlink()
-        self.write({'product_uom_qty': self.product_uom_qty - 1})
-        self.order_id.message_post(
-            body=f"Chambre {resource_name} retirée de la ligne « {self.product_id.name} ». "
-                f"Motif : {reason}"
-                + (f" Dette annulée sur {len(due_charges)} charge(s)." if due_charges and cancel_due_debt else "")
-        )
         self._notify_room_occupancy_change()
+
+        message = (
+            f"Chambre {resource_name} retirée de la ligne « {product_name} ». "
+            f"Motif : {reason}"
+            + (f" Dette annulée sur {due_count} charge(s)." if due_count else "")
+        )
+
+        if remaining_qty <= 0:
+            order.message_post(body=message + " Ligne supprimée (plus aucune chambre dessus).")
+            self.unlink()
+        else:
+            self.write({'product_uom_qty': remaining_qty})
+            order.message_post(body=message)
 
     def _planning_slot_values(self):
         vals = super()._planning_slot_values()
