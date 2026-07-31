@@ -236,6 +236,7 @@ class SaleOrderLine(models.Model):
         charges = folio_charge.search([
             ('sale_order_line_id', '=', self.id),
             ('x_room_resource_id', '=', resource_id),
+            ('is_refund', '=', False),
         ])
         paid_charges = charges.filtered(
             lambda c: c.payment_status == 'paid_pos' and not c.currency_id.is_zero(c.amount_net)
