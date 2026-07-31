@@ -6,9 +6,17 @@
         <field name="model">pos.hotel.order.cancel.wizard</field>
         <field name="arch" type="xml">
             <form string="Annuler la commande">
-                <group>
-                    <field name="sale_order_id" invisible="1"/>
-                    <field name="reason" placeholder="Expliquez pourquoi cette commande est annulée..."/>
+                <group> 
+                    <field name="sale_order_id" invisible="1"/> 
+                    <field name="currency_id" invisible="1"/> 
+                    <field name="due_amount"/> 
+                    <field name="cancel_due_debt" invisible="not due_amount"/> 
+                    <field name="settled_amount"/> 
+                    <field name="refund_settled_charges" invisible="not settled_amount"/> 
+                    <field name="refund_payment_method_line_id" 
+                           invisible="not refund_settled_charges" 
+                           required="refund_settled_charges"/> 
+                    <field name="reason" placeholder="Expliquez pourquoi cette commande est annulée..."/> 
                 </group>
                 <footer>
                     <button string="Confirmer l'annulation"
