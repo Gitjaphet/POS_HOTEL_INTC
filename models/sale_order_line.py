@@ -159,7 +159,7 @@ class SaleOrderLine(models.Model):
 
     def _generate_missing_room_slots(self, forced_resource_id=None):
         for sol in self:
-            needed = max(1, int(sol.product_uom_qty)) - len(sol.planning_slot_ids)
+            needed = int(sol.product_uom_qty) - len(sol.planning_slot_ids)
             if needed <= 0 or not sol.x_room_start_date or not sol.x_room_return_date:
                 continue
 
