@@ -277,25 +277,11 @@ class PosHotelFolioCharge(models.Model):
             })
             payment.action_post()
 
-            # Réconciliation : les créances Transfert Chambre nominatives vivent
-            # dans l'écriture comptable de CHAQUE SESSION POS (self.move_id sur
-            # pos.session), pas dans un account_move individuel par paiement.
-            # On les retrouve par compte (411200) + partenaire, seul repère fiable
-            # depuis que split_transactions=True rend ces lignes nominatives.
-            pos_sessions = self.pos_order_line_id.order_id.session_id
-
-            lines_to_reconcile = payment.move_id.line_ids.filtered(
-                lambda l: l.account_id == room_charge_account and not l.reconciled
-            )
-            if pos_sessions:
-                lines_to_reconcile += pos_sessions.mapped("move_id.line_ids").filtered(
-                    lambda l: l.account_id == room_charge_account
-                    and l.partner_id == partner
-                    and not l.reconciled
-                )
-            if len(lines_to_reconcile.mapped("account_id")) == 1 and len(lines_to_reconcile) > 1:
-                lines_to_reconcile.reconcile()
-
+            # Le lettrage (rapprochement 411200 avec la session POS d'origine)
+            # n'est PAS tenté ici : une session POS reste "opened" tant que le
+            # service tourne, son move_id n'existe qu'à la fermeture. Le
+            # rapprochement est une opération de clôture, effectuée au night
+            # audit / à la fermeture de session — jamais en temps réel.
             self.write({
                 "payment_status": "settled",
                 "settlement_payment_id": payment.id,
@@ -360,19 +346,5 @@ class PosHotelFolioCharge(models.Model):
                 "settlement_payment_id": payment.id,
             })
 
-        # Réconciliation : même logique que action_settle(), on retrouve les
-        # lignes 411200 nominatives dans les écritures des sessions POS d'origine.
-        pos_sessions = self.pos_order_line_id.order_id.session_id
-        lines_to_reconcile = payment.move_id.line_ids.filtered(
-            lambda l: l.account_id == room_charge_account and not l.reconciled
-        )
-        if pos_sessions:
-            lines_to_reconcile += pos_sessions.mapped("move_id.line_ids").filtered(
-                lambda l: l.account_id == room_charge_account
-                and l.partner_id == partner
-                and not l.reconciled
-            )
-        if len(lines_to_reconcile.mapped("account_id")) == 1 and len(lines_to_reconcile) > 1:
-            lines_to_reconcile.reconcile()
-
+        # Le lettrage sera fait au night audit (rapprochement différé), pas ici.
         return payment
