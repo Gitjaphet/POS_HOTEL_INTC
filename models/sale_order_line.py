@@ -237,13 +237,17 @@ class SaleOrderLine(models.Model):
             ('sale_order_line_id', '=', self.id),
             ('x_room_resource_id', '=', resource_id),
         ])
-        paid_charges = charges.filtered(lambda c: c.payment_status == 'paid_pos')
+        paid_charges = charges.filtered(
+            lambda c: c.payment_status == 'paid_pos' and not c.currency_id.is_zero(c.amount_net)
+        )
         if paid_charges:
             raise ValidationError(
                 "Cette chambre a des extras payés au POS non remboursés. "
                 "Effectuez d'abord le remboursement via le POS avant de retirer la chambre."
             )
-        settled_charges = charges.filtered(lambda c: c.payment_status == 'settled')
+        settled_charges = charges.filtered(
+            lambda c: c.payment_status == 'settled' and not c.currency_id.is_zero(c.amount_net)
+        )
         if settled_charges and not refund_settled_charges:
             raise ValidationError(
                 "Cette chambre a des extras réglés (compte 411200) à rembourser. "

@@ -111,14 +111,18 @@ class SaleOrder(models.Model):
         self.ensure_one()
         charges = self.x_folio_charge_normal_ids
 
-        paid_charges = charges.filtered(lambda c: c.payment_status == 'paid_pos')
+        paid_charges = charges.filtered(
+            lambda c: c.payment_status == 'paid_pos' and not c.currency_id.is_zero(c.amount_net)
+        )
         if paid_charges:
             raise UserError(
                 "Ce folio a des extras payés au POS non remboursés. "
                 "Effectuez d'abord le remboursement via le POS avant d'annuler la commande."
             )
 
-        settled_charges = charges.filtered(lambda c: c.payment_status == 'settled')
+        settled_charges = charges.filtered(
+            lambda c: c.payment_status == 'settled' and not c.currency_id.is_zero(c.amount_net)
+        )
         if settled_charges and not refund_settled_charges:
             raise UserError(
                 "Ce folio a des extras réglés (compte 411200) à rembourser. "
