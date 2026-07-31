@@ -214,7 +214,8 @@ class SaleOrderLine(models.Model):
             },
         }
 
-    def action_remove_room(self, resource_id, reason, cancel_due_debt=False):
+    def action_remove_room(self, resource_id, reason, cancel_due_debt=False,
+                            refund_settled_charges=False, refund_payment_method_line_id=False):
         self.ensure_one()
         slot = self.planning_slot_ids.filtered(lambda s: s.resource_id.id == resource_id)
         if not slot:
@@ -243,11 +244,17 @@ class SaleOrderLine(models.Model):
                 "Effectuez d'abord le remboursement via le POS avant de retirer la chambre."
             )
         settled_charges = charges.filtered(lambda c: c.payment_status == 'settled')
-        if settled_charges:
+        if settled_charges and not refund_settled_charges:
             raise ValidationError(
                 "Cette chambre a des extras réglés (compte 411200) à rembourser. "
-                "Cette fonctionnalité arrive dans une prochaine étape."
+                "Cochez le remboursement dans le wizard pour continuer."
             )
+        if settled_charges and refund_settled_charges:
+            if not refund_payment_method_line_id:
+                raise ValidationError(
+                    "Un mode de paiement pour le remboursement est requis."
+                )
+            settled_charges.action_refund_settled(refund_payment_method_line_id)
 
         due_charges = charges.filtered(lambda c: c.payment_status == 'due')
         if due_charges and cancel_due_debt:

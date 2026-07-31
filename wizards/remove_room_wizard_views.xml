@@ -10,9 +10,14 @@
                     <field name="sale_order_line_id" invisible="1"/>
                     <field name="available_resource_ids" invisible="1"/>
                     <field name="currency_id" invisible="1"/>
-                    <field name="resource_id"/>
-                    <field name="due_amount"/>
-                    <field name="cancel_due_debt" invisible="not due_amount"/>
+                    <field name="resource_id"/> 
+                    <field name="due_amount"/> 
+                    <field name="cancel_due_debt" invisible="not due_amount"/> 
+                    <field name="settled_amount"/> 
+                    <field name="refund_settled_charges" invisible="not settled_amount"/> 
+                    <field name="refund_payment_method_line_id" 
+                           invisible="not refund_settled_charges" 
+                           required="refund_settled_charges"/> 
                     <field name="reason"/>
                 </group>
                 <footer>

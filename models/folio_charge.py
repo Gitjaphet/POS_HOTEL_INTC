@@ -301,3 +301,78 @@ class PosHotelFolioCharge(models.Model):
                 "settlement_payment_id": payment.id,
             })
             return payment
+
+
+    def action_refund_settled(self, payment_method_line_id):
+        """Rembourse les charges 'settled' sélectionnées via un paiement sortant
+        (account.payment outbound), symétrique à action_settle(). Crée pour
+        chaque charge une charge négative liée via original_charge_id — même
+        mécanisme que les remboursements POS (refund_status, amount_net calculés
+        automatiquement). La charge d'origine reste au statut 'settled' :
+        c'est amount_net/refund_status qui reflète qu'elle est soldée.
+        """
+        if not self:
+            return
+        if any(charge.payment_status != "settled" for charge in self):
+            raise UserError("Seules les charges au statut 'Réglé' peuvent être remboursées ici.")
+        if len(self.sale_order_id) > 1:
+            raise UserError("Impossible de rembourser des charges appartenant à des folios différents en une seule fois.")
+
+        payment_method_line = self.env["account.payment.method.line"].browse(payment_method_line_id)
+        sale_order = self.sale_order_id
+        partner = self.partner_id or sale_order.partner_id
+        currency = sale_order.currency_id
+        company = sale_order.company_id
+        total_amount = sum(self.mapped("amount_net"))
+
+        room_charge_account = self.env["account.account"].search([
+            ("code", "=", "411200"),
+            ("company_ids", "in", company.id),
+        ], limit=1)
+        if not room_charge_account:
+            raise UserError("Le compte 411200 (Créances Transferts Chambre) est introuvable.")
+
+        payment = self.env["account.payment"].create({
+            "payment_type": "outbound",
+            "partner_type": "customer",
+            "partner_id": partner.id,
+            "amount": total_amount,
+            "journal_id": payment_method_line.journal_id.id,
+            "payment_method_line_id": payment_method_line.id,
+            "currency_id": currency.id,
+            "memo": f"Remboursement extras réglés — {sale_order.name}",
+            "destination_account_id": room_charge_account.id,
+        })
+        payment.action_post()
+
+        refund_charges = self.browse()
+        for charge in self:
+            refund_charges += self.create({
+                "name": f"Remboursement — {charge.name}",
+                "sale_order_id": charge.sale_order_id.id,
+                "sale_order_line_id": charge.sale_order_line_id.id,
+                "x_room_resource_id": charge.x_room_resource_id.id,
+                "partner_id": charge.partner_id.id,
+                "amount": -charge.amount_net,
+                "payment_status": "settled",
+                "is_refund": True,
+                "original_charge_id": charge.id,
+                "settlement_payment_id": payment.id,
+            })
+
+        # Réconciliation : même logique que action_settle(), on retrouve les
+        # lignes 411200 nominatives dans les écritures des sessions POS d'origine.
+        pos_sessions = self.pos_order_line_id.order_id.session_id
+        lines_to_reconcile = payment.move_id.line_ids.filtered(
+            lambda l: l.account_id == room_charge_account and not l.reconciled
+        )
+        if pos_sessions:
+            lines_to_reconcile += pos_sessions.mapped("move_id.line_ids").filtered(
+                lambda l: l.account_id == room_charge_account
+                and l.partner_id == partner
+                and not l.reconciled
+            )
+        if len(lines_to_reconcile.mapped("account_id")) == 1 and len(lines_to_reconcile) > 1:
+            lines_to_reconcile.reconcile()
+
+        return payment
