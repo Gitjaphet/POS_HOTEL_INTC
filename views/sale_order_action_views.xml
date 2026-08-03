@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <record id="booking_engine.booking_engine_rooms_order_action" model="ir.actions.act_window">
+    <field name="view_id" ref="sale_order_primary_view_pos_hotel_intc"/>
+  </record>
+</odoo>

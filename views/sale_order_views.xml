@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-  <record id="sale_order_view_inherit_pos_hotel_intc" model="ir.ui.view">
-    <field name="name">sale.order.form.inherit.pos.hotel.intc</field>
+  <record id="sale_order_primary_view_pos_hotel_intc" model="ir.ui.view">
+    <field name="name">sale.order.form.primary.pos.hotel.intc</field>
     <field name="model">sale.order</field>
     <field name="inherit_id" ref="sale.view_order_form"/>
-    <field name="mode">extension</field>
-    <field name="priority">170</field>
+    <field name="mode">primary</field>
+    <field name="priority">999</field>
     <field name="arch" type="xml">
       <xpath expr="//notebook" position="inside">
         <page string="Extra Charge" name="x_extra_charge">
@@ -83,15 +83,7 @@
           </field>
         </page>
       </xpath>
-    </field>
-  </record>
-  <record id="sale_order_view_inherit_pos_hotel_intc_folio_period" model="ir.ui.view">
-    <field name="name">sale.order.form.inherit.pos.hotel.intc.folio.period</field>
-    <field name="model">sale.order</field>
-    <field name="inherit_id" ref="sale.view_order_form"/>
-    <field name="mode">extension</field>
-    <field name="priority">171</field>
-    <field name="arch" type="xml">
+
       <xpath expr="//field[@name='rental_start_date']" position="after">
         <field name="x_folio_period_start"
                string="Début Folio (multi-chambres)"
@@ -102,122 +94,71 @@
                readonly="1"
                invisible="not x_folio_is_multi_room"/>
       </xpath>
-    </field>
-  </record>
-  <record id="view_order_form_hide_native_cancel" model="ir.ui.view">
-    <field name="name">sale.order.form.hide.native.cancel</field>
-    <field name="model">sale.order</field>
-    <field name="inherit_id" ref="sale.view_order_form"/>
-    <field name="arch" type="xml">
-        <button name="action_cancel" position="attributes">
-            <attribute name="invisible">1</attribute>
-        </button>
-        <button name="action_cancel" position="after">
-            <button string="Annuler"
-                    name="action_open_cancel_wizard"
-                    type="object"
-                    invisible="state not in ['draft', 'sent', 'sale'] or not id or locked"/>
-        </button>
-    </field>
-  </record>
-  <record id="sale_order_line_view_inherit_pos_hotel_intc_room_dates" model="ir.ui.view">
-    <field name="name">sale.order.line.list.inherit.pos.hotel.intc.room.dates</field>
-    <field name="model">sale.order</field>
-    <field name="inherit_id" ref="sale.view_order_form"/>
-    <field name="mode">extension</field>
-    <field name="priority">172</field>
-    <field name="arch" type="xml">
-        <xpath expr="//field[@name='order_line']//list//field[@name='product_id']" position="after">
-            <field name="x_is_a_room_offer" column_invisible="1"/>
-            <field name="x_room_start_date"
-                   string="Début séjour"
-                   invisible="not x_is_a_room_offer"
-                   readonly="parent.state == 'cancel' or parent.locked"/>
-            <field name="x_room_return_date"
-                   string="Fin séjour"
-                   invisible="not x_is_a_room_offer"
-                   readonly="parent.state == 'cancel' or parent.locked"/>
-        </xpath>
-    </field>
-  </record>
 
-  <record id="sale_order_line_view_inherit_pos_hotel_intc_hotel_columns" model="ir.ui.view">
-    <field name="name">sale.order.line.list.inherit.pos.hotel.intc.hotel.columns</field>
-    <field name="model">sale.order</field>
-    <field name="inherit_id" ref="sale.view_order_form"/>
-    <field name="mode">extension</field>
-    <field name="priority">173</field>
-    <field name="arch" type="xml">
-        <xpath expr="//field[@name='order_line']//list//field[@name='product_id']" position="after">
-            <field name="x_room_resource_names" string="Chambre" invisible="not x_is_a_room_offer"/>
-        </xpath>
-        <xpath expr="//field[@name='order_line']//list//field[@name='price_unit']" position="before">
-            <field name="x_room_price_per_night" string="Prix/nuit" invisible="not x_is_a_room_offer"/>
-        </xpath>
-        <xpath expr="//field[@name='order_line']//list//field[@name='x_room_return_date']" position="after">
-            <field name="x_room_nights" string="Nuits" invisible="not x_is_a_room_offer"/>
-        </xpath>
-        <xpath expr="//field[@name='order_line']//list//field[@name='product_uom_qty']" position="attributes">
-            <attribute name="column_invisible">1</attribute>
-        </xpath>
-        <xpath expr="//field[@name='order_line']//list//field[@name='qty_delivered']" position="attributes">
-            <attribute name="column_invisible">1</attribute>
-        </xpath>
-        <xpath expr="//field[@name='order_line']//list//field[@name='qty_returned']" position="attributes">
-            <attribute name="column_invisible">1</attribute>
-        </xpath>
-        <xpath expr="//field[@name='order_line']//list//field[@name='product_uom_id']" position="attributes">
-            <attribute name="column_invisible">1</attribute>
-        </xpath>
-    </field>
-  </record>
+      <button name="action_cancel" position="attributes">
+        <attribute name="invisible">1</attribute>
+      </button>
+      <button name="action_cancel" position="after">
+        <button string="Annuler"
+                name="action_open_cancel_wizard"
+                type="object"
+                invisible="state not in ['draft', 'sent', 'sale'] or not id or locked"/>
+      </button>
 
-  <record id="sale_order_line_view_inherit_pos_hotel_intc_add_room_button" model="ir.ui.view">
-    <field name="name">sale.order.line.list.inherit.pos.hotel.intc.add.room.button</field>
-    <field name="model">sale.order</field>
-    <field name="inherit_id" ref="sale.view_order_form"/>
-    <field name="mode">extension</field>
-    <field name="priority">174</field>
-    <field name="arch" type="xml">
-        <xpath expr="//field[@name='order_line']//list//field[@name='x_room_resource_names']" position="after">
-            <button name="action_open_add_room_wizard"
-                    type="object"
-                    icon="fa-plus-circle"
-                    title="Ajouter une chambre"
-                    invisible="not x_is_a_room_offer or parent.state != 'sale' or parent.locked"/>
-            <button name="action_open_remove_room_wizard"
-                    type="object"
-                    icon="fa-minus-circle"
-                    title="Retirer une chambre"
-                    invisible="not x_is_a_room_offer or parent.state != 'sale' or parent.locked"/>
-        </xpath>
-    </field>
-  </record>
+      <xpath expr="//field[@name='order_line']//list//field[@name='product_id']" position="after">
+        <field name="x_is_a_room_offer" column_invisible="1"/>
+        <field name="x_room_start_date"
+               string="Début séjour"
+               invisible="not x_is_a_room_offer"
+               readonly="parent.state == 'cancel' or parent.locked"/>
+        <field name="x_room_return_date"
+               string="Fin séjour"
+               invisible="not x_is_a_room_offer"
+               readonly="parent.state == 'cancel' or parent.locked"/>
+      </xpath>
 
-  <record id="sale_order_view_inherit_pos_hotel_intc_hide_removed" model="ir.ui.view">
-    <field name="name">sale.order.form.inherit.pos.hotel.intc.hide.removed</field>
-    <field name="model">sale.order</field>
-    <field name="inherit_id" ref="sale.view_order_form"/>
-    <field name="mode">extension</field>
-    <field name="priority">175</field>
-    <field name="arch" type="xml">
-        <xpath expr="//field[@name='order_line']" position="attributes">
-            <attribute name="domain">['|', ('x_is_a_room_offer', '=', False), ('product_uom_qty', '&gt;', 0)]</attribute>
-        </xpath>
-    </field>
-  </record>
+      <xpath expr="//field[@name='order_line']//list//field[@name='product_id']" position="after">
+        <field name="x_room_resource_names" string="Chambre" invisible="not x_is_a_room_offer"/>
+      </xpath>
+      <xpath expr="//field[@name='order_line']//list//field[@name='price_unit']" position="before">
+        <field name="x_room_price_per_night" string="Prix/nuit" invisible="not x_is_a_room_offer"/>
+      </xpath>
+      <xpath expr="//field[@name='order_line']//list//field[@name='x_room_return_date']" position="after">
+        <field name="x_room_nights" string="Nuits" invisible="not x_is_a_room_offer"/>
+      </xpath>
+      <xpath expr="//field[@name='order_line']//list//field[@name='product_uom_qty']" position="attributes">
+        <attribute name="column_invisible">1</attribute>
+      </xpath>
+      <xpath expr="//field[@name='order_line']//list//field[@name='qty_delivered']" position="attributes">
+        <attribute name="column_invisible">1</attribute>
+      </xpath>
+      <xpath expr="//field[@name='order_line']//list//field[@name='qty_returned']" position="attributes">
+        <attribute name="column_invisible">1</attribute>
+      </xpath>
+      <xpath expr="//field[@name='order_line']//list//field[@name='product_uom_id']" position="attributes">
+        <attribute name="column_invisible">1</attribute>
+      </xpath>
 
-  <record id="sale_order_line_view_inherit_pos_hotel_intc_muted_removed" model="ir.ui.view">
-    <field name="name">sale.order.line.list.inherit.pos.hotel.intc.muted.removed</field>
-    <field name="model">sale.order</field>
-    <field name="inherit_id" ref="sale.view_order_form"/>
-    <field name="mode">extension</field>
-    <field name="priority">176</field>
-    <field name="arch" type="xml">
-        <xpath expr="//field[@name='order_line']//list" position="attributes">
-            <attribute name="decoration-muted">x_is_a_room_offer and product_uom_qty == 0</attribute>
-        </xpath>
+      <xpath expr="//field[@name='order_line']//list//field[@name='x_room_resource_names']" position="after">
+        <button name="action_open_add_room_wizard"
+                type="object"
+                icon="fa-plus-circle"
+                title="Ajouter une chambre"
+                invisible="not x_is_a_room_offer or parent.state != 'sale' or parent.locked"/>
+        <button name="action_open_remove_room_wizard"
+                type="object"
+                icon="fa-minus-circle"
+                title="Retirer une chambre"
+                invisible="not x_is_a_room_offer or parent.state != 'sale' or parent.locked"/>
+      </xpath>
+
+      <xpath expr="//field[@name='order_line']" position="attributes">
+        <attribute name="domain">['|', ('x_is_a_room_offer', '=', False), ('product_uom_qty', '&gt;', 0)]</attribute>
+      </xpath>
+
+      <xpath expr="//field[@name='order_line']//list" position="attributes">
+        <attribute name="decoration-muted">x_is_a_room_offer and product_uom_qty == 0</attribute>
+      </xpath>
     </field>
   </record>
-  
 </odoo>
