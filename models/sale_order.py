@@ -100,6 +100,39 @@ class SaleOrder(models.Model):
             "context": {"default_sale_order_id": self.id},
         }
 
+    def action_open_pickup(self):
+        self.ensure_one()
+        slots = self.order_line.planning_slot_ids.filtered(
+            lambda s: s.x_stay_status == 'pending'
+        )
+        if not slots:
+            return super().action_open_pickup()
+        return self._open_checkin_wizard('checkin', slots)
+
+    def action_open_return(self):
+        self.ensure_one()
+        slots = self.order_line.planning_slot_ids.filtered(
+            lambda s: s.x_stay_status == 'checked_in'
+        )
+        if not slots:
+            return super().action_open_return()
+        return self._open_checkin_wizard('checkout', slots)
+
+    def _open_checkin_wizard(self, status, slots):
+        line_vals = [(0, 0, {'planning_slot_id': slot.id}) for slot in slots]
+        return {
+            'type': 'ir.actions.act_window',
+            'name': "Enregistrement" if status == 'checkin' else "Départ",
+            'res_model': 'pos.hotel.checkin.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_order_id': self.id,
+                'default_status': status,
+                'default_line_ids': line_vals,
+            },
+        }
+
     def action_cancel_folio_charges(self, cancel_due_debt=False,
                                      refund_settled_charges=False,
                                      refund_payment_method_line_id=False):
