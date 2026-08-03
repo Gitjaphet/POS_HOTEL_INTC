@@ -67,6 +67,21 @@
             </list>
           </field>
         </page>
+        <page string="Occupation" name="x_room_occupation">
+          <field name="x_room_stay_slot_ids" nolabel="1">
+            <list create="0" delete="0" edit="0" default_group_by="x_stay_status">
+              <field name="resource_id" string="Chambre"/>
+              <field name="start_datetime" string="Début séjour"/>
+              <field name="end_datetime" string="Fin séjour"/>
+              <field name="x_stay_status" string="Statut" widget="badge"
+                     decoration-muted="x_stay_status == 'pending'"
+                     decoration-success="x_stay_status == 'checked_in'"
+                     decoration-info="x_stay_status == 'checked_out'"/>
+              <field name="x_checked_in_at" string="Enregistré le"/>
+              <field name="x_checked_out_at" string="Parti le"/>
+            </list>
+          </field>
+        </page>
       </xpath>
     </field>
   </record>

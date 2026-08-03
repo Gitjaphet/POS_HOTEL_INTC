@@ -55,6 +55,13 @@ class SaleOrder(models.Model):
         store=True,
         help="Vrai si le folio contient au moins 2 chambres avec des périodes de séjour distinctes.",
     )
+    x_room_stay_slot_ids = fields.One2many(
+        "planning.slot",
+        string="Séjours (chambres)",
+        compute="_compute_room_stay_slot_ids",
+        help="Tous les planning.slot des chambres de ce folio, tous produits "
+             "confondus, pour le suivi check-in/check-out par chambre précise.",
+    )
 
     @api.depends(
         "order_line.planning_slot_ids.start_datetime",
@@ -73,6 +80,11 @@ class SaleOrder(models.Model):
             order.x_folio_is_multi_room = len(room_slots) > 1 and (
                 len(set(starts)) > 1 or len(set(ends)) > 1
             )
+
+    @api.depends("order_line.planning_slot_ids")
+    def _compute_room_stay_slot_ids(self):
+        for order in self:
+            order.x_room_stay_slot_ids = order.order_line.planning_slot_ids
 
     @api.depends(
         "x_folio_charge_normal_ids.amount_net",
