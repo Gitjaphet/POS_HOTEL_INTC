@@ -29,3 +29,18 @@ class PlanningSlot(models.Model):
              "N'est jamais utilisé comme source de vérité pour la logique "
              "métier — voir x_stay_status.",
     )
+
+    def action_create_order(self):
+        action = super().action_create_order()
+        if self.role_id.x_is_a_room_offer:
+            hotel_view = self.env.ref(
+                'POS_HOTEL_INTC.sale_order_primary_view_pos_hotel_intc',
+                raise_if_not_found=False,
+            )
+            if hotel_view:
+                action['views'] = [
+                    (hotel_view.id, view_type) if view_type == 'form' else (view_id, view_type)
+                    for view_id, view_type in action['views']
+                ]
+                action['view_id'] = hotel_view.id
+        return action
