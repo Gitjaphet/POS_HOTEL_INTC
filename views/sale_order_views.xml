@@ -160,16 +160,19 @@
         <attribute name="decoration-muted">x_is_a_room_offer and product_uom_qty == 0</attribute>
       </xpath>
 
-      <button name="action_open_return" position="attributes">
+      <xpath expr="//button[@name='action_open_return'][@class='btn-primary']" position="attributes">
         <attribute name="invisible">1</attribute>
-      </button>
-      <button name="action_open_return" position="after">
+      </xpath>
+      <xpath expr="//button[@name='action_open_return'][@class='btn-secondary']" position="attributes">
+        <attribute name="invisible">1</attribute>
+      </xpath>
+      <xpath expr="//button[@name='action_open_return'][@class='btn-secondary']" position="after">
         <button string="Départ"
                 name="action_open_return"
                 type="object"
                 class="btn-primary"
                 invisible="state != 'sale' or not has_returnable_lines"/>
-      </button>
+      </xpath>
     </field>
   </record>
 </odoo>
