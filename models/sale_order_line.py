@@ -418,7 +418,7 @@ class SaleOrderLine(models.Model):
         else:
             was_delivered = 1 if slot.x_stay_status in ('checked_in', 'checked_out') else 0
             was_returned = 1 if slot.x_stay_status == 'checked_out' else 0
-            line = self.copy({
+            line = self.with_context(planning_slot_generation=False).copy({
                 'product_uom_qty': 1,
                 'qty_delivered': was_delivered,
                 'qty_returned': was_returned,
