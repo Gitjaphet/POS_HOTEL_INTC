@@ -1,7 +1,7 @@
 def migrate(cr, version):
     env = _get_env(cr)
     action_view = env['ir.actions.act_window.view'].search([
-        ('action_id', '=', env.ref('booking_engine.booking_engine_rooms_order_action').id),
+        ('act_window_id', '=', env.ref('booking_engine.booking_engine_rooms_order_action').id),
         ('view_mode', '=', 'form'),
     ])
     hotel_view = env.ref('POS_HOTEL_INTC.sale_order_primary_view_pos_hotel_intc', raise_if_not_found=False)

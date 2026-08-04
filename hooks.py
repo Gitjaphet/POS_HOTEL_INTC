@@ -19,7 +19,7 @@ def _fix_booking_engine_order_form_view(env):
     if not action or not hotel_view:
         return
     action_view = env["ir.actions.act_window.view"].search([
-        ("action_id", "=", action.id),
+        ("act_window_id", "=", action.id),
         ("view_mode", "=", "form"),
     ])
     if action_view:
