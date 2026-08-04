@@ -173,6 +173,20 @@
                 class="btn-primary"
                 invisible="state != 'sale' or not has_returnable_lines"/>
       </xpath>
+
+      <xpath expr="//button[@name='action_open_pickup']" position="attributes">
+        <attribute name="string">Arrivée</attribute>
+      </xpath>
+
+      <xpath expr="//div[text()='Late Pickup']" position="replace">
+        <div class="badge rounded-pill text-bg-danger float-end border-0"
+             invisible="not has_rented_products or state != 'sale' or rental_status != 'pickup' or not is_late">Arrivée tardive</div>
+      </xpath>
+
+      <xpath expr="//div[text()='Picked-up']" position="replace">
+        <div class="badge rounded-pill text-bg-warning float-end border-0"
+             invisible="not has_rented_products or state != 'sale' or rental_status != 'return' or is_late">Arrivé</div>
+      </xpath>
     </field>
   </record>
 </odoo>
