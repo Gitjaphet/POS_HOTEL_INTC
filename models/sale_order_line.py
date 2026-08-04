@@ -442,6 +442,17 @@ class SaleOrderLine(models.Model):
         line.price_unit = line._get_pricelist_price()
         return line
 
+    def _compute_product_updatable(self):
+        super()._compute_product_updatable()
+        for line in self:
+            if (
+                line.x_is_a_room_offer
+                and line.state != 'cancel'
+                and line.qty_delivered == 0
+                and line.qty_invoiced == 0
+            ):
+                line.product_updatable = True
+
 
 
 
