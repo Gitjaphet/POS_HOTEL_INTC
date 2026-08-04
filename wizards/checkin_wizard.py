@@ -31,21 +31,31 @@ class PosHotelCheckinWizard(models.TransientModel):
         selected = self.line_ids.filtered("selected")
         if not selected:
             raise UserError("Sélectionnez au moins une chambre.")
+        now = fields.Datetime.now()
         for line in selected:
             slot = line.planning_slot_id
-            order_line = slot.sale_line_id
             if self.status == "checkin":
+                if (
+                    slot.start_datetime and now > slot.start_datetime
+                    and (not slot.end_datetime or now < slot.end_datetime)
+                ):
+                    slot.sale_line_id._adjust_room_stay_date(slot, 'start', now)
                 slot.write({
                     "x_stay_status": "checked_in",
-                    "x_checked_in_at": fields.Datetime.now(),
+                    "x_checked_in_at": now,
                 })
-                order_line.update({"qty_delivered": order_line.qty_delivered + 1})
+                slot.sale_line_id.update({"qty_delivered": slot.sale_line_id.qty_delivered + 1})
             else:
+                if (
+                    slot.end_datetime and now < slot.end_datetime
+                    and (not slot.start_datetime or now > slot.start_datetime)
+                ):
+                    slot.sale_line_id._adjust_room_stay_date(slot, 'end', now)
                 slot.write({
                     "x_stay_status": "checked_out",
-                    "x_checked_out_at": fields.Datetime.now(),
+                    "x_checked_out_at": now,
                 })
-                order_line.update({"qty_returned": order_line.qty_returned + 1})
+                slot.sale_line_id.update({"qty_returned": slot.sale_line_id.qty_returned + 1})
         return {"type": "ir.actions.act_window_close"}
 
 

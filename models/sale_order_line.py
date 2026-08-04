@@ -403,3 +403,46 @@ class SaleOrderLine(models.Model):
     def _onchange_x_room_dates_update_price(self):
         if self.is_rental and self.x_is_a_room_offer and self.x_room_start_date and self.x_room_return_date:
             self.price_unit = self._get_pricelist_price()
+
+
+    def _adjust_room_stay_date(self, slot, edge, new_datetime):
+        """Ajuste la date de début ou de fin de séjour d'une chambre précise
+        (slot). Si la ligne regroupe plusieurs chambres, la chambre concernée
+        est séparée dans sa propre ligne (même logique que action_remove_room)
+        pour ne jamais impacter les autres chambres du groupe.
+        Retourne la ligne (self ou une nouvelle ligne) portant désormais le slot.
+        """
+        self.ensure_one()
+        if len(self.planning_slot_ids) <= 1:
+            line = self
+        else:
+            was_delivered = 1 if slot.x_stay_status in ('checked_in', 'checked_out') else 0
+            was_returned = 1 if slot.x_stay_status == 'checked_out' else 0
+            line = self.copy({
+                'product_uom_qty': 1,
+                'qty_delivered': was_delivered,
+                'qty_returned': was_returned,
+                'planning_slot_ids': [],
+            })
+            slot.write({
+                'sale_line_id': line.id,
+                'sale_order_id': line.order_id.id,
+            })
+            self.write({
+                'product_uom_qty': self.product_uom_qty - 1,
+                'qty_delivered': max(0, self.qty_delivered - was_delivered),
+                'qty_returned': max(0, self.qty_returned - was_returned),
+            })
+
+        if edge == 'start':
+            line.x_room_start_date = new_datetime
+        else:
+            line.x_room_return_date = new_datetime
+
+        line.price_unit = line._get_pricelist_price()
+        return line
+
+
+
+
+    
