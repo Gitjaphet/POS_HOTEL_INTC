@@ -43,10 +43,7 @@ class PosHotelCheckinWizard(models.TransientModel):
                 })
                 slot.sale_line_id.update({"qty_delivered": slot.sale_line_id.qty_delivered + 1})
             else:
-                if (
-                    slot.end_datetime and now < slot.end_datetime
-                    and (not slot.start_datetime or now > slot.start_datetime)
-                ):
+                if slot.end_datetime and now < slot.end_datetime:
                     slot.sale_line_id._adjust_room_stay_date(slot, 'end', now)
                 slot.write({
                     "x_stay_status": "checked_out",
