@@ -35,7 +35,8 @@ class PosHotelCheckinWizard(models.TransientModel):
         for line in selected:
             slot = line.planning_slot_id
             if self.status == "checkin":
-                slot.sale_line_id._adjust_room_stay_date(slot, 'start', now)
+                if slot.start_datetime and now < slot.start_datetime:
+                    slot.sale_line_id._adjust_room_stay_date(slot, 'start', now)
                 slot.write({
                     "x_stay_status": "checked_in",
                     "x_checked_in_at": now,
