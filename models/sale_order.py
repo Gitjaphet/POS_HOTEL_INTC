@@ -189,3 +189,13 @@ class SaleOrder(models.Model):
         self.order_line.planning_slot_ids.unlink()
         self.order_line._notify_room_occupancy_change()
         return res
+
+    def get_formview_id(self, access_uid=None):
+        if self.x_order_involves_room:
+            hotel_view = self.env.ref(
+                'POS_HOTEL_INTC.sale_order_primary_view_pos_hotel_intc',
+                raise_if_not_found=False,
+            )
+            if hotel_view:
+                return hotel_view.id
+        return super().get_formview_id(access_uid=access_uid)
