@@ -178,12 +178,12 @@
         <attribute name="string">Arrivée</attribute>
       </xpath>
 
-      <xpath expr="//div[text()='Late Pickup']" position="replace">
+      <xpath expr="//div[contains(text(), 'Late Pickup')]" position="replace">
         <div class="badge rounded-pill text-bg-danger float-end border-0"
              invisible="not has_rented_products or state != 'sale' or rental_status != 'pickup' or not is_late">Arrivée tardive</div>
       </xpath>
 
-      <xpath expr="//div[text()='Picked-up']" position="replace">
+      <xpath expr="//div[contains(text(), 'Picked-up')]" position="replace">
         <div class="badge rounded-pill text-bg-warning float-end border-0"
              invisible="not has_rented_products or state != 'sale' or rental_status != 'return' or is_late">Arrivé</div>
       </xpath>
