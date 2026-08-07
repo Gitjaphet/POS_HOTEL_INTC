@@ -109,3 +109,40 @@ class PosOrder(models.Model):
                 paid_amount = line.price_subtotal_incl - due_amount
                 folio_charge._create_from_pos_order_line(self, sale_order, line, "due", amount=due_amount, sale_order_line=sale_order_line, room_resource=resource)
                 folio_charge._create_from_pos_order_line(self, sale_order, line, "paid_pos", amount=paid_amount, sale_order_line=sale_order_line, room_resource=resource)
+
+
+    def _compute_customer_due_total(self):
+        """Surcharge du calcul natif (pos_settle_due) pour exclure les paiements
+        'Transfert Chambre' (is_room_charge) du calcul de la dette 'Compte
+        client' native. Ces montants sont déjà intégralement suivis par notre
+        propre système (pos.hotel.folio.charge/payment_status) — les compter
+        aussi ici créerait un double comptage visible notamment sur la facture
+        finale (section 'Customer account balance' du module account_pos_settle_due).
+        Le vrai 'Compte client' natif (crédit client hors chambre) continue de
+        fonctionner normalement, seul 'Transfert Chambre' est neutralisé ici.
+        """
+        for order in self:
+            order_pay_later_pm = order.payment_ids.filtered(
+                lambda payment: payment.amount > 0
+                and payment.payment_method_id.type == 'pay_later'
+                and not payment.payment_method_id.is_room_charge
+            )
+            if order.partner_id and order_pay_later_pm and not order.is_invoiced:
+                if order.customer_due_total:
+                    order_due = order.init_customer_due_total
+                    order_settled = self.env.company.currency_id.round(
+                        sum(order.settled_order_line_ids.mapped('price_unit'))
+                    )
+                    order.customer_due_total = order_due - order_settled
+                else:
+                    order_due = sum(order_pay_later_pm.mapped('amount'))
+                    customer_due = order.partner_id.get_total_due(order.config_id.id)['res.partner'][0]['total_due']
+                    total_before = customer_due - order_due
+                    if customer_due > 0:
+                        if total_before < 0:
+                            order_due = customer_due
+                        if order_due > 0:
+                            order.customer_due_total = order_due
+                            order.init_customer_due_total = order_due
+            else:
+                order.customer_due_total = 0
