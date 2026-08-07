@@ -59,11 +59,12 @@ class PosHotelRemoveRoomWizard(models.TransientModel):
     @api.depends("sale_order_line_id", "resource_id") 
     def _compute_charge_amounts(self): 
         for wizard in self: 
-            due_charges = self.env["pos.hotel.folio.charge"].search([ 
-                ("sale_order_line_id", "=", wizard.sale_order_line_id.id), 
-                ("x_room_resource_id", "=", wizard.resource_id.id), 
-                ("payment_status", "=", "due"), 
-            ]) 
+            due_charges = self.env["pos.hotel.folio.charge"].search([
+                ("sale_order_line_id", "=", wizard.sale_order_line_id.id),
+                ("x_room_resource_id", "=", wizard.resource_id.id),
+                ("payment_status", "=", "due"),
+                ("x_invoice_id", "=", False),
+            ])
             wizard.due_amount = sum(due_charges.mapped("amount_net")) 
             settled_charges = self.env["pos.hotel.folio.charge"].search([ 
                 ("sale_order_line_id", "=", wizard.sale_order_line_id.id), 
