@@ -111,6 +111,16 @@ class PosHotelFolioCharge(models.Model):
         index=True,
         help="Paiement ayant soldé cette charge due (bascule payment_status vers 'settled').",
     )
+    x_invoice_id = fields.Many2one(
+        "account.move",
+        string="Facture",
+        ondelete="restrict",
+        index=True,
+        help="Facture ayant inclus cette charge (si incluse dans la facture globale du folio). "
+             "Indépendant de payment_status : une charge peut être facturée et toujours 'due' "
+             "si le client n'a pas encore réglé la facture. Vide tant que la charge n'a jamais "
+             "été incluse dans une facture.",
+    )
     refund_charge_ids = fields.One2many(
         "pos.hotel.folio.charge",
         "original_charge_id",
