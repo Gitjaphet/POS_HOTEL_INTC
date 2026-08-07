@@ -219,6 +219,7 @@ class PosHotelFolioCharge(models.Model):
         due_charges = self.search([
             ("sale_order_id", "=", sale_order.id),
             ("payment_status", "=", "due"),
+            ("x_invoice_id", "=", False),
         ], order="date asc")
 
         total_due = sum(due_charges.mapped("amount_net"))
