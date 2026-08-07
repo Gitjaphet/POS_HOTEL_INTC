@@ -66,3 +66,18 @@ class PosPaymentMethod(models.Model):
             })
 
         return payment_method
+
+    @api.model
+    def _ensure_extras_income_account(self, company):
+        account = self.env["account.account"].search([
+            ("code", "=", "707200"),
+            ("company_ids", "in", company.id),
+        ], limit=1)
+        if not account:
+            account = self.env["account.account"].create({
+                "code": "707200",
+                "name": "Ventes extras chambre",
+                "account_type": "income",
+                "company_ids": [(6, 0, [company.id])],
+            })
+        return account
