@@ -243,7 +243,9 @@ class SaleOrderLine(models.Model):
             lambda c: c.x_invoice_id and c.x_invoice_id.state != 'cancel'
         )
         if invoiced_charges:
-            invoice_names = ', '.join(invoiced_charges.mapped('x_invoice_id.name'))
+            invoice_names = ', '.join(
+                (inv.name or "Brouillon") for inv in invoiced_charges.mapped('x_invoice_id')
+            )
             raise ValidationError(
                 f"Cette chambre a des extras déjà inclus dans une facture non annulée "
                 f"({invoice_names}). Annulez d'abord cette facture (ou établissez un avoir) "
