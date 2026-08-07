@@ -89,6 +89,7 @@ class SaleOrder(models.Model):
     @api.depends(
         "x_folio_charge_normal_ids.amount_net",
         "x_folio_charge_normal_ids.payment_status",
+        "x_folio_charge_normal_ids.x_invoice_id",
     )
     def _compute_folio_totals(self):
         for order in self:
@@ -97,7 +98,9 @@ class SaleOrder(models.Model):
                 charges.filtered(lambda c: c.payment_status in ("paid_pos", "settled")).mapped("amount_net")
             )
             order.x_folio_total_due = sum(
-                charges.filtered(lambda c: c.payment_status == "due").mapped("amount_net")
+                charges.filtered(
+                    lambda c: c.payment_status == "due" and not c.x_invoice_id
+                ).mapped("amount_net")
             )
 
 
