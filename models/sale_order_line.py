@@ -238,6 +238,18 @@ class SaleOrderLine(models.Model):
             ('x_room_resource_id', '=', resource_id),
             ('is_refund', '=', False),
         ])
+
+        invoiced_charges = charges.filtered(
+            lambda c: c.x_invoice_id and c.x_invoice_id.state != 'cancel'
+        )
+        if invoiced_charges:
+            invoice_names = ', '.join(invoiced_charges.mapped('x_invoice_id.name'))
+            raise ValidationError(
+                f"Cette chambre a des extras déjà inclus dans une facture non annulée "
+                f"({invoice_names}). Annulez d'abord cette facture (ou établissez un avoir) "
+                "avant de retirer la chambre."
+            )
+        
         paid_charges = charges.filtered(
             lambda c: c.payment_status == 'paid_pos' and not c.currency_id.is_zero(c.amount_net)
         )
