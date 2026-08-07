@@ -1,6 +1,7 @@
 def post_init_hook(env):
     for company in env["res.company"].search([]):
         env["pos.payment.method"]._ensure_room_charge_method(company)
+        env["pos.payment.method"]._ensure_extras_income_account(company)
     _fix_room_calendars(env)
     _fix_booking_engine_order_form_view(env)
 

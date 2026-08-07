@@ -9,7 +9,7 @@ class SaleAdvancePaymentInv(models.TransientModel):
     x_include_pos_extras = fields.Boolean(
         string="Inclure les extras dus",
         help="Si coché, les consommations POS transférées au folio et encore dues "
-             "seront ajoutées comme lignes de la facture (compte 411200 conservé), "
+             "seront ajoutées comme lignes de la facture (compte 707200 dédié), "
              "en plus des lignes de chambres. Uniquement disponible pour une facture "
              "normale (pas un acompte).",
     )
@@ -37,9 +37,12 @@ class SaleAdvancePaymentInv(models.TransientModel):
 
     def _add_pos_extras_lines(self, invoices):
         """Ajoute les extras POS dus du folio comme lignes supplémentaires sur la
-        facture générée, sur le compte 411200 (même compte que action_settle/
-        action_refund_settled), et marque les charges incluses via x_invoice_id
-        pour éviter qu'elles ne soient proposées deux fois."""
+        facture générée, sur le compte 707200 (compte de vente dédié, distinct
+        du 411200 réservé au suivi de créance interne action_settle/
+        action_refund_settled — un compte 'à recevoir' ne peut pas servir de
+        ligne produit sur une facture, contrainte native Odoo), et marque les
+        charges incluses via x_invoice_id pour éviter qu'elles ne soient
+        proposées deux fois."""
         self.ensure_one()
         due_charges = self.sale_order_ids.x_folio_charge_normal_ids.filtered(
             lambda c: c.payment_status == "due"
@@ -47,12 +50,12 @@ class SaleAdvancePaymentInv(models.TransientModel):
         if not due_charges:
             return
 
-        room_charge_account = self.env["account.account"].search([
-            ("code", "=", "411200"),
+        extras_income_account = self.env["account.account"].search([
+            ("code", "=", "707200"),
             ("company_ids", "in", self.company_id.id or self.env.company.id),
         ], limit=1)
-        if not room_charge_account:
-            raise UserError("Le compte 411200 (Créances Transferts Chambre) est introuvable.")
+        if not extras_income_account:
+            raise UserError("Le compte 707200 (Ventes extras chambre) est introuvable.")
 
         for invoice in invoices:
             charges_for_invoice = due_charges.filtered(
@@ -66,7 +69,7 @@ class SaleAdvancePaymentInv(models.TransientModel):
                         "name": charge.name,
                         "quantity": 1.0,
                         "price_unit": charge.amount_net,
-                        "account_id": room_charge_account.id,
+                        "account_id": extras_income_account.id,
                     })
                     for charge in charges_for_invoice
                 ],
