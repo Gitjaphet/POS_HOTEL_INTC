@@ -183,7 +183,9 @@ class SaleOrder(models.Model):
                 )
             settled_charges.action_refund_settled(refund_payment_method_line_id)
 
-        due_charges = charges.filtered(lambda c: c.payment_status == 'due')
+        due_charges = charges.filtered(
+            lambda c: c.payment_status == 'due' and not c.x_invoice_id
+        )
         if due_charges and cancel_due_debt:
             due_charges.write({'payment_status': 'cancelled'})
 
