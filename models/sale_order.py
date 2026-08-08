@@ -160,7 +160,9 @@ class SaleOrder(models.Model):
         charges = self.x_folio_charge_normal_ids
 
         room_active_invoices = self.order_line.invoice_lines.move_id.filtered(
-            lambda m: m.state != 'cancel' and m.payment_state != 'reversed'
+            lambda m: m.move_type == 'out_invoice'
+            and m.state != 'cancel'
+            and m.payment_state != 'reversed'
         )
         if room_active_invoices:
             invoice_names = ', '.join(
