@@ -25,6 +25,9 @@ class PosHotelCheckinWizard(models.TransientModel):
         "wizard_id",
         string="Chambres",
     )
+    reason = fields.Text(
+        string="Motif (si départ avec dette non réglée)",
+    )
 
     def action_confirm(self):
         self.ensure_one()
@@ -43,6 +46,30 @@ class PosHotelCheckinWizard(models.TransientModel):
                 })
                 slot.sale_line_id.update({"qty_delivered": slot.sale_line_id.qty_delivered + 1})
             else:
+                if line.x_due_amount and not line.cancel_due_debt:
+                    raise UserError(
+                        f"La chambre {slot.resource_id.name} a encore {line.x_due_amount} "
+                        f"{line.currency_id.symbol} d'extras non réglés. Cochez "
+                        "'Annuler la dette due sur cette chambre' (avec motif) pour "
+                        "continuer, ou réglez d'abord ces extras."
+                    )
+                if line.x_due_amount and line.cancel_due_debt:
+                    if not self.reason:
+                        raise UserError(
+                            "Un motif est requis pour annuler la dette au départ."
+                        )
+                    due_charges = self.env["pos.hotel.folio.charge"].search([
+                        ("sale_order_line_id", "=", slot.sale_line_id.id),
+                        ("x_room_resource_id", "=", slot.resource_id.id),
+                        ("payment_status", "=", "due"),
+                        ("x_invoice_id", "=", False),
+                    ])
+                    due_charges.write({"payment_status": "cancelled"})
+                    self.order_id.message_post(
+                        body=f"Départ chambre {slot.resource_id.name} avec dette annulée "
+                             f"({line.x_due_amount} {line.currency_id.symbol}). "
+                             f"Motif : {self.reason}"
+                    )
                 if slot.end_datetime and now < slot.end_datetime:
                     slot.sale_line_id._adjust_room_stay_date(slot, 'end', now)
                 slot.write({
@@ -81,3 +108,28 @@ class PosHotelCheckinWizardLine(models.TransientModel):
         string="Sélectionner",
         default=True,
     )
+    x_due_amount = fields.Monetary(
+        string="Montant dû sur cette chambre",
+        compute="_compute_x_due_amount",
+        currency_field="currency_id",
+    )
+    currency_id = fields.Many2one(
+        related="wizard_id.order_id.currency_id",
+    )
+    cancel_due_debt = fields.Boolean(
+        string="Annuler la dette due sur cette chambre",
+    )
+
+    @api.depends("planning_slot_id", "wizard_id.status")
+    def _compute_x_due_amount(self):
+        for line in self:
+            if line.wizard_id.status != "checkout":
+                line.x_due_amount = 0.0
+                continue
+            due_charges = self.env["pos.hotel.folio.charge"].search([
+                ("sale_order_line_id", "=", line.planning_slot_id.sale_line_id.id),
+                ("x_room_resource_id", "=", line.resource_id.id),
+                ("payment_status", "=", "due"),
+                ("x_invoice_id", "=", False),
+            ])
+            line.x_due_amount = sum(due_charges.mapped("amount_net"))
