@@ -63,7 +63,7 @@ class PosHotelRemoveRoomWizard(models.TransientModel):
                 ("sale_order_line_id", "=", wizard.sale_order_line_id.id),
                 ("x_room_resource_id", "=", wizard.resource_id.id),
                 ("payment_status", "=", "due"),
-                ("x_invoice_id", "=", False),
+                ("x_invoice_is_active", "=", False),
             ])
             wizard.due_amount = sum(due_charges.mapped("amount_net")) 
             settled_charges = self.env["pos.hotel.folio.charge"].search([ 

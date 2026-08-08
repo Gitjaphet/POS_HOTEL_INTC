@@ -45,7 +45,7 @@ class PosHotelOrderCancelWizard(models.TransientModel):
         for wizard in self:
             charges = wizard.sale_order_id.x_folio_charge_normal_ids
             due_charges = charges.filtered(
-                lambda c: c.payment_status == "due" and not c.x_invoice_id
+                lambda c: c.payment_status == "due" and not c.x_invoice_is_active
             )
             wizard.due_amount = sum(due_charges.mapped("amount_net"))
             settled_charges = charges.filtered(lambda c: c.payment_status == "settled")

@@ -121,6 +121,14 @@ class PosHotelFolioCharge(models.Model):
              "si le client n'a pas encore réglé la facture. Vide tant que la charge n'a jamais "
              "été incluse dans une facture.",
     )
+    x_invoice_is_active = fields.Boolean(
+        string="Facture active",
+        compute="_compute_invoice_is_active",
+        store=True,
+        help="True si x_invoice_id pointe vers une facture ni annulée ni extournée. "
+            "Permet de distinguer une charge réellement encore facturée d'une charge "
+            "dont la facture a été annulée/extournée depuis (redevient 'due' de fait).",
+    )
     refund_charge_ids = fields.One2many(
         "pos.hotel.folio.charge",
         "original_charge_id",
@@ -148,6 +156,14 @@ class PosHotelFolioCharge(models.Model):
         compute="_compute_amount_refunded",
         store=True,
     )
+    @api.depends("x_invoice_id.state", "x_invoice_id.payment_state")
+    def _compute_invoice_is_active(self):
+        for charge in self:
+            charge.x_invoice_is_active = bool(
+                charge.x_invoice_id
+                and charge.x_invoice_id.state != 'cancel'
+                and charge.x_invoice_id.payment_state != 'reversed'
+            )
 
     @api.depends("amount", "refund_charge_ids.amount")
     def _compute_amount_refunded(self):
@@ -219,7 +235,7 @@ class PosHotelFolioCharge(models.Model):
         due_charges = self.search([
             ("sale_order_id", "=", sale_order.id),
             ("payment_status", "=", "due"),
-            ("x_invoice_id", "=", False),
+            ("x_invoice_is_active", "=", False),
         ], order="date asc")
 
         total_due = sum(due_charges.mapped("amount_net"))

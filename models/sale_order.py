@@ -89,7 +89,7 @@ class SaleOrder(models.Model):
     @api.depends(
         "x_folio_charge_normal_ids.amount_net",
         "x_folio_charge_normal_ids.payment_status",
-        "x_folio_charge_normal_ids.x_invoice_id",
+        "x_folio_charge_normal_ids.x_invoice_is_active",
     )
     def _compute_folio_totals(self):
         for order in self:
@@ -99,7 +99,7 @@ class SaleOrder(models.Model):
             )
             order.x_folio_total_due = sum(
                 charges.filtered(
-                    lambda c: c.payment_status == "due" and not c.x_invoice_id
+                    lambda c: c.payment_status == "due" and not c.x_invoice_is_active
                 ).mapped("amount_net")
             )
 
@@ -160,7 +160,7 @@ class SaleOrder(models.Model):
         charges = self.x_folio_charge_normal_ids
 
         invoiced_charges = charges.filtered(
-            lambda c: c.x_invoice_id and c.x_invoice_id.state != 'cancel'
+            lambda c: c.x_invoice_is_active
         )
         if invoiced_charges:
             invoice_names = ', '.join(
@@ -197,7 +197,7 @@ class SaleOrder(models.Model):
             settled_charges.action_refund_settled(refund_payment_method_line_id)
 
         due_charges = charges.filtered(
-            lambda c: c.payment_status == 'due' and not c.x_invoice_id
+            lambda c: c.payment_status == 'due' and not c.x_invoice_is_active
         )
         if due_charges and cancel_due_debt:
             due_charges.write({'payment_status': 'cancelled'})

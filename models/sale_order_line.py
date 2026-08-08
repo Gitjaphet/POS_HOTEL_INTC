@@ -240,7 +240,7 @@ class SaleOrderLine(models.Model):
         ])
 
         invoiced_charges = charges.filtered(
-            lambda c: c.x_invoice_id and c.x_invoice_id.state != 'cancel'
+            lambda c: c.x_invoice_is_active
         )
         if invoiced_charges:
             invoice_names = ', '.join(
@@ -276,7 +276,7 @@ class SaleOrderLine(models.Model):
             settled_charges.action_refund_settled(refund_payment_method_line_id)
 
         due_charges = charges.filtered(
-            lambda c: c.payment_status == 'due' and not c.x_invoice_id
+            lambda c: c.payment_status == 'due' and not c.x_invoice_is_active
         )
         if due_charges and cancel_due_debt:
             due_charges.write({'payment_status': 'cancelled'})
