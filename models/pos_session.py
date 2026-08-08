@@ -20,11 +20,11 @@ class PosSession(models.Model):
                 vals["account_id"] = account.id
         return vals
 
-x_night_audit_id = fields.Many2one(
-        "pos.hotel.night.audit",
-        string="Night audit",
-        readonly=True,
-        copy=False,
-        help="Night audit ayant traité et rapproché cette session. "
-             "Vide tant que la session fermée n'a pas encore été auditée.",
-    )
+    x_night_audit_id = fields.Many2one(
+            "pos.hotel.night.audit",
+            string="Night audit",
+            readonly=True,
+            copy=False,
+            help="Night audit ayant traité et rapproché cette session. "
+                "Vide tant que la session fermée n'a pas encore été auditée.",
+        )
