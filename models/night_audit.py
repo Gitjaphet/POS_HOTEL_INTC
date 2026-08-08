@@ -103,6 +103,15 @@ class PosHotelNightAudit(models.Model):
                 ).mapped('settlement_payment_id.move_id.line_ids').filtered(
                     lambda l: l.account_id == account_411200 and not l.reconciled
                 )
+            ) or (
+                self.env['pos.hotel.folio.charge'].search([
+                    ('x_invoice_offset_move_id', '!=', False),
+                ]).filtered(
+                    lambda c: (c.pos_order_id.session_id == s)
+                    or (c.original_charge_id.pos_order_id.session_id == s)
+                ).mapped('x_invoice_offset_move_id.line_ids').filtered(
+                    lambda l: l.account_id == account_411200 and not l.reconciled
+                )
             )
         )
         if not sessions:
@@ -149,8 +158,22 @@ class PosHotelNightAudit(models.Model):
             credit_lines |= payment.move_id.line_ids.filtered(
                 lambda l: l.account_id == account_411200
             )
+
+        offset_charges = self.env['pos.hotel.folio.charge'].search([
+            ('x_invoice_offset_move_id', '!=', False),
+        ]).filtered(
+            lambda c: (c.pos_order_id.session_id in sessions)
+            or (c.original_charge_id.pos_order_id.session_id in sessions)
+        )
+        offset_moves = offset_charges.mapped('x_invoice_offset_move_id')
+        for move in offset_moves:
+            credit_lines |= move.line_ids.filtered(
+                lambda l: l.account_id == account_411200
+            )
+
         log("Rapprochement 411200", "info",
-            f"{len(payments)} paiement(s) lié(s) à ces sessions, {len(credit_lines)} ligne(s) crédit correspondante(s).")
+            f"{len(payments)} paiement(s) + {len(offset_moves)} compensation(s) facture liée(s) à ces sessions, "
+            f"{len(credit_lines)} ligne(s) crédit correspondante(s).")
 
         unmatched = []
         reconciled_count = 0

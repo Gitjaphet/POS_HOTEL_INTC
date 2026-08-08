@@ -129,6 +129,16 @@ class PosHotelFolioCharge(models.Model):
             "Permet de distinguer une charge réellement encore facturée d'une charge "
             "dont la facture a été annulée/extournée depuis (redevient 'due' de fait).",
     )
+    x_invoice_offset_move_id = fields.Many2one(
+        "account.move",
+        string="Écriture de compensation",
+        ondelete="restrict",
+        index=True,
+        help="Écriture manuelle (débit 707200/crédit 411200) postée pour "
+             "neutraliser le double-comptage de revenu quand cette charge "
+             "a été incluse dans une facture. Sert au night audit pour "
+             "retrouver le crédit 411200 correspondant à cette charge.",
+    )
     refund_charge_ids = fields.One2many(
         "pos.hotel.folio.charge",
         "original_charge_id",

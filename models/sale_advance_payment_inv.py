@@ -124,6 +124,7 @@ class SaleAdvancePaymentInv(models.TransientModel):
                     ],
                 })
                 offset_move.action_post()
+                charge.write({"x_invoice_offset_move_id": offset_move.id})
 
                 new_credit_line = offset_move.line_ids.filtered(
                     lambda l: l.account_id == room_charge_account
