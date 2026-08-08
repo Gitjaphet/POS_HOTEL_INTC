@@ -263,6 +263,21 @@ class PosHotelFolioCharge(models.Model):
             to_settle.action_settle(payment_method_line_id)
         return to_settle
 
+    def action_open_cancel_wizard(self):
+        self.ensure_one()
+        if self.payment_status != 'due':
+            raise UserError(
+                "Seul un extra encore dû peut être annulé ainsi."
+            )
+        return {
+            'type': 'ir.actions.act_window',
+            'name': "Annuler cet extra",
+            'res_model': 'pos.hotel.charge.cancel.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_charge_id': self.id},
+        }
+
     def action_settle(self, payment_method_line_id):
             """Règle les charges 'due' sélectionnées en un seul paiement groupé,
             posté et réconcilié avec les écritures POS d'origine (compte 411200,

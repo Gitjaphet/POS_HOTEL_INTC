@@ -24,6 +24,9 @@
                      decoration-success="payment_status == 'paid_pos'"
                      decoration-warning="payment_status == 'due'"
                      decoration-info="payment_status == 'settled'"/>
+              <button name="action_open_cancel_wizard" type="object"
+                      string="Annuler" icon="fa-times" title="Annuler cet extra"
+                      invisible="payment_status != 'due'"/>
             </list>
           </field>
           <div class="oe_right" style="text-align: right; margin-top: 8px;">
