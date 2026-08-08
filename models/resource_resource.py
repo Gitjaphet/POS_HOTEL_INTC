@@ -11,13 +11,17 @@ class ResourceResource(models.Model):
         compute="_compute_x_current_partner_id",
     )
 
-    @api.depends("x_ongoing_booking.start_datetime", "x_ongoing_booking.end_datetime", "x_ongoing_booking.sale_line_id.order_id.partner_id")
+    @api.depends()
     def _compute_x_current_partner_id(self):
         now = fields.Datetime.now()
+        Slot = self.env["planning.slot"]
         for resource in self:
-            slot = resource.x_ongoing_booking.filtered(
-                lambda s: s.start_datetime <= now <= s.end_datetime
-            )[:1]
+            slot = Slot.search([
+                ("resource_id", "=", resource.id),
+                ("x_stay_status", "=", "checked_in"),
+                ("start_datetime", "<=", now),
+                ("end_datetime", ">=", now),
+            ], limit=1)
             resource.x_current_partner_id = slot.sale_line_id.order_id.partner_id if slot and slot.sale_line_id else False
 
     @api.model
