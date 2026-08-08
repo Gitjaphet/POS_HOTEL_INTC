@@ -85,11 +85,26 @@ class PosHotelNightAudit(models.Model):
             self.write({'state': 'blocked'})
             return
 
-        sessions = self.env['pos.session'].search([
+        all_closed_sessions = self.env['pos.session'].search([
             ('state', '=', 'closed'),
-            ('x_night_audit_id', '=', False),
             ('company_id', '=', self.company_id.id),
         ])
+        sessions = all_closed_sessions.filtered(
+            lambda s: (
+                s.move_id.line_ids.filtered(
+                    lambda l: l.account_id == account_411200 and not l.reconciled
+                )
+            ) or (
+                self.env['pos.hotel.folio.charge'].search([
+                    ('settlement_payment_id', '!=', False),
+                ]).filtered(
+                    lambda c: (c.pos_order_id.session_id == s)
+                    or (c.original_charge_id.pos_order_id.session_id == s)
+                ).mapped('settlement_payment_id.move_id.line_ids').filtered(
+                    lambda l: l.account_id == account_411200 and not l.reconciled
+                )
+            )
+        )
         if not sessions:
             log("Sélection des sessions", "info", "Aucune session fermée à auditer.")
             self.write({'state': 'done'})
