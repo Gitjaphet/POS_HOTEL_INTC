@@ -33,7 +33,26 @@ class SaleAdvancePaymentInv(models.TransientModel):
         invoices = self._create_invoices(self.sale_order_ids)
         if self.advance_payment_method == "delivered" and self.x_include_pos_extras:
             self._add_pos_extras_lines(invoices)
+        self._reconcile_down_payment_lines(invoices)
         return self.sale_order_ids.action_view_invoice(invoices=invoices)
+
+    def _reconcile_down_payment_lines(self, invoices):
+        """Rapproche automatiquement, sur chaque facture finale, la ligne de
+        déduction d'acompte (419100) avec la ligne correspondante sur la
+        facture d'acompte d'origine (via le mécanisme natif
+        _get_downpayment_lines). Sans ça, cet acompte reste indéfiniment en
+        résiduel ouvert des deux côtés — comportement natif Odoo standard
+        qui laisse ce rapprochement au comptable, automatisé ici."""
+        for invoice in invoices:
+            downpayment_lines = invoice.line_ids.filtered(
+                lambda l: l.sale_line_ids.filtered("is_downpayment") and not l.reconciled
+            )
+            for line in downpayment_lines:
+                origin_lines = line._get_downpayment_lines().filtered(
+                    lambda l: not l.reconciled
+                )
+                if origin_lines:
+                    (line + origin_lines).reconcile()
 
     def _add_pos_extras_lines(self, invoices):
         """Ajoute les extras POS dus du folio comme lignes supplémentaires sur la
