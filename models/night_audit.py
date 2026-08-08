@@ -56,6 +56,99 @@ class PosHotelNightAudit(models.Model):
                 ) or "Nouveau"
         return super().create(vals_list)
 
+    def action_run(self):
+        self.ensure_one()
+        if self.state not in ('draft', 'blocked'):
+            raise UserError("Cet audit a déjà été exécuté.")
+
+        self.log_ids.unlink()
+        self.write({'state': 'running'})
+        seq = 0
+
+        def log(step_name, status, message):
+            nonlocal seq
+            seq += 10
+            self.env['pos.hotel.night.audit.log'].create({
+                'audit_id': self.id,
+                'sequence': seq,
+                'step_name': step_name,
+                'status': status,
+                'message': message,
+            })
+
+        account_411200 = self.env['account.account'].search([
+            ('code', '=', '411200'),
+            ('company_ids', 'in', self.company_id.id),
+        ], limit=1)
+        if not account_411200:
+            log("Configuration", "blocked", "Compte 411200 introuvable.")
+            self.write({'state': 'blocked'})
+            return
+
+        sessions = self.env['pos.session'].search([
+            ('state', '=', 'closed'),
+            ('x_night_audit_id', '=', False),
+            ('company_id', '=', self.company_id.id),
+        ])
+        if not sessions:
+            log("Sélection des sessions", "info", "Aucune session fermée à auditer.")
+            self.write({'state': 'done'})
+            return
+        self.session_ids = sessions
+        log("Sélection des sessions", "ok",
+            f"{len(sessions)} session(s) fermée(s) trouvée(s) : {', '.join(sessions.mapped('name'))}")
+
+        debit_lines = self.env['account.move.line']
+        for session in sessions:
+            if not session.move_id:
+                log("Vérification clôture", "blocked",
+                    f"La session {session.name} n'a pas d'écriture comptable (move_id vide).")
+                self.write({'state': 'blocked'})
+                return
+            debit_lines |= session.move_id.line_ids.filtered(
+                lambda l: l.account_id == account_411200
+            )
+        log("Vérification clôture", "ok",
+            f"{len(debit_lines)} ligne(s) 411200 trouvée(s) sur les sessions.")
+
+        charges = self.env['pos.hotel.folio.charge'].search([
+            ('settlement_payment_id', '!=', False),
+        ]).filtered(
+            lambda c: (c.pos_order_id.session_id in sessions)
+            or (c.original_charge_id.pos_order_id.session_id in sessions)
+        )
+        payments = charges.mapped('settlement_payment_id')
+        credit_lines = self.env['account.move.line']
+        for payment in payments:
+            credit_lines |= payment.move_id.line_ids.filtered(
+                lambda l: l.account_id == account_411200
+            )
+        log("Rapprochement 411200", "info",
+            f"{len(payments)} paiement(s) lié(s) à ces sessions, {len(credit_lines)} ligne(s) crédit correspondante(s).")
+
+        unmatched = []
+        reconciled_count = 0
+        for partner in credit_lines.mapped('partner_id'):
+            partner_debits = debit_lines.filtered(lambda l: l.partner_id == partner and not l.reconciled)
+            partner_credits = credit_lines.filtered(lambda l: l.partner_id == partner and not l.reconciled)
+            if not partner_debits:
+                unmatched.append(
+                    f"{partner.name} : {len(partner_credits)} paiement(s) sans écriture de session correspondante."
+                )
+                continue
+            (partner_debits + partner_credits).reconcile()
+            reconciled_count += len(partner_debits) + len(partner_credits)
+
+        if unmatched:
+            log("Appariement 411200", "blocked", "\n".join(unmatched))
+            self.write({'state': 'blocked'})
+            return
+
+        log("Appariement 411200", "ok", f"{reconciled_count} ligne(s) rapprochée(s) avec succès.")
+
+        sessions.write({'x_night_audit_id': self.id})
+        self.write({'state': 'done'})
+        log("Clôture", "ok", f"Night audit {self.name} clôturé, {len(sessions)} session(s) marquée(s) auditée(s).")
 
 class PosHotelNightAuditLog(models.Model):
     _name = "pos.hotel.night.audit.log"
