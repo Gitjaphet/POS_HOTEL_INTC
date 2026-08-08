@@ -99,15 +99,26 @@ class PosHotelNightAudit(models.Model):
             f"{len(sessions)} session(s) fermée(s) trouvée(s) : {', '.join(sessions.mapped('name'))}")
 
         debit_lines = self.env['account.move.line']
+        empty_sessions = []
         for session in sessions:
             if not session.move_id:
-                log("Vérification clôture", "blocked",
-                    f"La session {session.name} n'a pas d'écriture comptable (move_id vide).")
-                self.write({'state': 'blocked'})
-                return
+                valid_orders = session.order_ids.filtered(lambda o: o.state != 'cancel')
+                if valid_orders:
+                    log("Vérification clôture", "blocked",
+                        f"La session {session.name} a {len(valid_orders)} commande(s) valide(s) "
+                        "mais aucune écriture comptable (move_id vide).")
+                    self.write({'state': 'blocked'})
+                    return
+                empty_sessions.append(session.name)
+                continue
             debit_lines |= session.move_id.line_ids.filtered(
                 lambda l: l.account_id == account_411200
             )
+        if empty_sessions:
+            log("Vérification clôture", "info",
+                f"{len(empty_sessions)} session(s) sans commande valide, ignorée(s) : "
+                f"{', '.join(empty_sessions)}")
+            
         log("Vérification clôture", "ok",
             f"{len(debit_lines)} ligne(s) 411200 trouvée(s) sur les sessions.")
 
