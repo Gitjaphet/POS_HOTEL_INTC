@@ -1,4 +1,5 @@
-from odoo import fields, models
+from odoo import api, fields, models
+from odoo.exceptions import ValidationError
 
 
 class PlanningSlot(models.Model):
@@ -44,3 +45,26 @@ class PlanningSlot(models.Model):
                 ]
                 action['view_id'] = hotel_view.id
         return action
+
+
+
+    @api.constrains('start_datetime', 'end_datetime', 'resource_id')
+    def _check_room_double_booking(self):
+        for slot in self:
+            if not slot.role_id.x_is_a_room_offer:
+                continue
+            if not (slot.resource_id and slot.start_datetime and slot.end_datetime):
+                continue
+            conflicting = self.search([
+                ('id', '!=', slot.id),
+                ('resource_id', '=', slot.resource_id.id),
+                ('x_stay_status', '!=', 'checked_out'),
+                ('start_datetime', '<', slot.end_datetime),
+                ('end_datetime', '>', slot.start_datetime),
+            ])
+            if conflicting:
+                raise ValidationError(
+                    f"La chambre {slot.resource_id.name} est déjà réservée sur "
+                    f"une période qui chevauche celle-ci ({slot.start_datetime} → "
+                    f"{slot.end_datetime}). Choisissez une autre chambre ou d'autres dates."
+                )
