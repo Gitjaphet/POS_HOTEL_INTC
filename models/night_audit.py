@@ -148,7 +148,9 @@ class PosHotelNightAudit(models.Model):
                 )
                 continue
             (partner_debits + partner_credits).reconcile()
-            reconciled_count += len(partner_debits) + len(partner_credits)
+            reconciled_count += len(
+                (partner_debits + partner_credits).filtered('reconciled')
+            )
 
         if unmatched:
             log("Appariement 411200", "blocked", "\n".join(unmatched))
