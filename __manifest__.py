@@ -6,6 +6,7 @@
     "depends": ["point_of_sale", "hotel"],
     "data": [
         "security/ir.model.access.csv",
+        "data/night_audit_sequence.xml",
         "views/pos_payment_method_views.xml",
         "wizards/folio_settle_wizard_views.xml",
         "wizards/order_cancel_wizard_views.xml",

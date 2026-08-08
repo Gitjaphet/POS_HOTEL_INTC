@@ -9,3 +9,5 @@ access_pos_hotel_room_removal_log_user,pos.hotel.room.removal.log.user,model_pos
 access_pos_hotel_checkin_wizard_user,pos.hotel.checkin.wizard.user,model_pos_hotel_checkin_wizard,base.group_user,1,1,1,1
 access_pos_hotel_checkin_wizard_line_user,pos.hotel.checkin.wizard.line.user,model_pos_hotel_checkin_wizard_line,base.group_user,1,1,1,1
 access_pos_hotel_charge_cancel_wizard_user,pos.hotel.charge.cancel.wizard.user,model_pos_hotel_charge_cancel_wizard,base.group_user,1,1,1,1
+access_pos_hotel_night_audit_user,pos.hotel.night.audit.user,model_pos_hotel_night_audit,base.group_user,1,1,1,0
+access_pos_hotel_night_audit_log_user,pos.hotel.night.audit.log.user,model_pos_hotel_night_audit_log,base.group_user,1,1,1,0
