@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <record id="pos_hotel_night_audit_view_list" model="ir.ui.view">
+    <field name="name">pos.hotel.night.audit.list</field>
+    <field name="model">pos.hotel.night.audit</field>
+    <field name="arch" type="xml">
+      <list>
+        <field name="name"/>
+        <field name="date"/>
+        <field name="session_ids" widget="many2many_tags"/>
+        <field name="state" widget="badge"
+               decoration-success="state == 'done'"
+               decoration-warning="state == 'running'"
+               decoration-danger="state == 'blocked'"
+               decoration-muted="state == 'draft'"/>
+      </list>
+    </field>
+  </record>
+
+  <record id="pos_hotel_night_audit_view_form" model="ir.ui.view">
+    <field name="name">pos.hotel.night.audit.form</field>
+    <field name="model">pos.hotel.night.audit</field>
+    <field name="arch" type="xml">
+      <form>
+        <header>
+          <button name="action_run" string="Lancer le night audit" type="object"
+                  class="btn-primary"
+                  invisible="state in ('running', 'done')"
+                  confirm="Le lettrage sera effectué automatiquement si tout s'équilibre. Continuer ?"/>
+          <field name="state" widget="statusbar" statusbar_visible="draft,running,blocked,done"/>
+        </header>
+        <sheet>
+          <div class="oe_title">
+            <h1><field name="name" readonly="1"/></h1>
+          </div>
+          <group>
+            <field name="date"/>
+            <field name="company_id" groups="base.group_multi_company"/>
+          </group>
+          <field name="session_ids" widget="many2many_tags" readonly="1"/>
+          <notebook>
+            <page string="Journal d'exécution" name="log">
+              <field name="log_ids" readonly="1">
+                <list decoration-danger="status == 'blocked'"
+                      decoration-success="status == 'ok'"
+                      decoration-info="status == 'info'">
+                  <field name="sequence" widget="handle"/>
+                  <field name="step_name"/>
+                  <field name="status" widget="badge"/>
+                  <field name="message"/>
+                </list>
+              </field>
+            </page>
+          </notebook>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <record id="pos_hotel_night_audit_action" model="ir.actions.act_window">
+    <field name="name">Night Audit</field>
+    <field name="res_model">pos.hotel.night.audit</field>
+    <field name="view_mode">list,form</field>
+    <field name="context">{}</field>
+  </record>
+
+  <menuitem id="pos_hotel_night_audit_menu"
+            name="Night Audit"
+            parent="booking_engine.booking_engine_rooms_menu"
+            action="pos_hotel_night_audit_action"
+            sequence="99"/>
+</odoo>
