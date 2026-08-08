@@ -159,6 +159,19 @@ class SaleOrder(models.Model):
         self.ensure_one()
         charges = self.x_folio_charge_normal_ids
 
+        room_active_invoices = self.order_line.invoice_lines.move_id.filtered(
+            lambda m: m.state != 'cancel' and m.payment_state != 'reversed'
+        )
+        if room_active_invoices:
+            invoice_names = ', '.join(
+                (inv.name or "Brouillon") for inv in room_active_invoices
+            )
+            raise UserError(
+                f"Ce folio a une ou plusieurs chambres déjà facturées "
+                f"({invoice_names}). Annulez d'abord cette facture (ou établissez "
+                "un avoir) avant d'annuler la commande."
+            )
+
         invoiced_charges = charges.filtered(
             lambda c: c.x_invoice_is_active
         )
