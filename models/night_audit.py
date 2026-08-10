@@ -87,28 +87,32 @@ class PosHotelNightAudit(models.Model):
             self.write({'state': 'blocked'})
             return
 
+        settled_charges_all = self.env['pos.hotel.folio.charge'].search([
+            ('settlement_payment_id', '!=', False),
+        ])
+        offset_charges_all = self.env['pos.hotel.folio.charge'].search([
+            ('x_invoice_offset_move_id', '!=', False),
+        ])
+
         all_closed_sessions = self.env['pos.session'].search([
             ('state', '=', 'closed'),
             ('company_id', '=', self.company_id.id),
         ])
+
         sessions = all_closed_sessions.filtered(
             lambda s: (
                 s.move_id.line_ids.filtered(
                     lambda l: l.account_id == account_411200 and not l.reconciled
                 )
             ) or (
-                self.env['pos.hotel.folio.charge'].search([
-                    ('settlement_payment_id', '!=', False),
-                ]).filtered(
+                settled_charges_all.filtered(
                     lambda c: (c.pos_order_id.session_id == s)
                     or (c.original_charge_id.pos_order_id.session_id == s)
                 ).mapped('settlement_payment_id.move_id.line_ids').filtered(
                     lambda l: l.account_id == account_411200 and not l.reconciled
                 )
             ) or (
-                self.env['pos.hotel.folio.charge'].search([
-                    ('x_invoice_offset_move_id', '!=', False),
-                ]).filtered(
+                offset_charges_all.filtered(
                     lambda c: (c.pos_order_id.session_id == s)
                     or (c.original_charge_id.pos_order_id.session_id == s)
                 ).mapped('x_invoice_offset_move_id.line_ids').filtered(
@@ -148,9 +152,7 @@ class PosHotelNightAudit(models.Model):
         log("Vérification clôture", "ok",
             f"{len(debit_lines)} ligne(s) 411200 trouvée(s) sur les sessions.")
 
-        charges = self.env['pos.hotel.folio.charge'].search([
-            ('settlement_payment_id', '!=', False),
-        ]).filtered(
+        charges = settled_charges_all.filtered(
             lambda c: (c.pos_order_id.session_id in sessions)
             or (c.original_charge_id.pos_order_id.session_id in sessions)
         )
@@ -161,9 +163,7 @@ class PosHotelNightAudit(models.Model):
                 lambda l: l.account_id == account_411200
             )
 
-        offset_charges = self.env['pos.hotel.folio.charge'].search([
-            ('x_invoice_offset_move_id', '!=', False),
-        ]).filtered(
+        offset_charges = offset_charges_all.filtered(
             lambda c: (c.pos_order_id.session_id in sessions)
             or (c.original_charge_id.pos_order_id.session_id in sessions)
         )
