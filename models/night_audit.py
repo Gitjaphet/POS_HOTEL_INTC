@@ -61,9 +61,8 @@ class PosHotelNightAudit(models.Model):
         if self.state not in ('draft', 'blocked'):
             raise UserError("Cet audit a déjà été exécuté.")
 
-        self.log_ids.unlink()
         self.write({'state': 'running'})
-        seq = 0
+        seq = max(self.log_ids.mapped('sequence'), default=0)
 
         def log(step_name, status, message):
             nonlocal seq
@@ -75,6 +74,9 @@ class PosHotelNightAudit(models.Model):
                 'status': status,
                 'message': message,
             })
+
+        if self.log_ids:
+            log("Nouvelle tentative", "info", "Relance de l'audit après blocage précédent.")
 
         account_411200 = self.env['account.account'].search([
             ('code', '=', '411200'),
