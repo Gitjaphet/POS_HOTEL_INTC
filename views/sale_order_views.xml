@@ -127,6 +127,10 @@
                readonly="parent.state == 'cancel' or parent.locked"/>
       </xpath>
 
+      <xpath expr="//field[@name='order_line']//list//field[@name='product_id']" position="attributes">
+        <attribute name="domain">[('planning_role_id.x_is_a_room_offer', '=', True)]</attribute>
+      </xpath>
+
       <xpath expr="//field[@name='order_line']//list//field[@name='product_id']" position="after">
         <field name="x_room_resource_names" string="Chambre" invisible="not x_is_a_room_offer"/>
       </xpath>
