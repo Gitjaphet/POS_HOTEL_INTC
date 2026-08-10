@@ -106,6 +106,10 @@
                 name="action_open_cancel_wizard"
                 type="object"
                 invisible="state not in ['draft', 'sent', 'sale'] or not id or locked"/>
+        
+        <button name="action_open_refund_wizard" type="object"
+                      string="Rembourser" icon="fa-undo" title="Rembourser cet extra"
+                      invisible="payment_status != 'settled'"/>
       </button>
 
       <xpath expr="//field[@name='order_line']//list//field[@name='product_id']" position="after">

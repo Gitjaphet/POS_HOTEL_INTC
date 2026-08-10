@@ -15,6 +15,7 @@
         "wizards/remove_room_wizard_views.xml",
         "wizards/checkin_wizard_views.xml",
         "wizards/charge_cancel_wizard_views.xml",
+        "wizards/charge_refund_wizard_views.xml",
         "views/sale_order_views.xml",
         "views/sale_order_action_views.xml",
         "views/sale_advance_payment_inv_views.xml",

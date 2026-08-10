@@ -288,6 +288,21 @@ class PosHotelFolioCharge(models.Model):
             'context': {'default_charge_id': self.id},
         }
 
+    def action_open_refund_wizard(self):
+        self.ensure_one()
+        if self.payment_status != 'settled':
+            raise UserError(
+                "Seul un extra au statut 'Réglé' peut être remboursé ainsi."
+            )
+        return {
+            'type': 'ir.actions.act_window',
+            'name': "Rembourser cet extra",
+            'res_model': 'pos.hotel.charge.refund.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_charge_id': self.id},
+        }
+
     def action_settle(self, payment_method_line_id):
             """Règle les charges 'due' sélectionnées en un seul paiement groupé,
             posté et réconcilié avec les écritures POS d'origine (compte 411200,
