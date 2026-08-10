@@ -176,14 +176,27 @@ class PosHotelNightAudit(models.Model):
             f"{len(credit_lines)} ligne(s) crédit correspondante(s).")
 
         unmatched = []
+        refund_notes = []
         reconciled_count = 0
         for partner in credit_lines.mapped('partner_id'):
             partner_debits = debit_lines.filtered(lambda l: l.partner_id == partner and not l.reconciled)
             partner_credits = credit_lines.filtered(lambda l: l.partner_id == partner and not l.reconciled)
             if not partner_debits:
-                unmatched.append(
-                    f"{partner.name} : {len(partner_credits)} paiement(s) sans écriture de session correspondante."
-                )
+                # Un vrai crédit orphelin (paiement reçu sans session en face) reste
+                # une anomalie à bloquer. Un débit de remboursement orphelin est
+                # normal dès que la session d'origine est déjà close/auditée — ce
+                # n'est jamais destiné à être lettré avec elle.
+                real_credits = partner_credits.filtered(lambda l: l.credit > 0)
+                refund_debits = partner_credits.filtered(lambda l: l.debit > 0)
+                if real_credits:
+                    unmatched.append(
+                        f"{partner.name} : {len(real_credits)} paiement(s) sans écriture de session correspondante."
+                    )
+                if refund_debits:
+                    refund_notes.append(
+                        f"{partner.name} : {len(refund_debits)} remboursement(s) post-clôture laissé(s) "
+                        "non lettré(s) (session d'origine déjà auditée — comportement normal)."
+                    )
                 continue
             (partner_debits + partner_credits).reconcile()
             reconciled_count += len(
@@ -196,6 +209,8 @@ class PosHotelNightAudit(models.Model):
             return
 
         log("Appariement 411200", "ok", f"{reconciled_count} ligne(s) rapprochée(s) avec succès.")
+        if refund_notes:
+            log("Remboursements post-clôture", "info", "\n".join(refund_notes))
 
         sessions.write({'x_night_audit_id': self.id})
         self.write({'state': 'done'})
