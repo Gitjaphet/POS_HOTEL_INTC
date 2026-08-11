@@ -77,7 +77,7 @@ class PosHotelChargeAddServiceWizardLine(models.TransientModel):
         "product.product",
         string="Service",
         required=True,
-        domain="[('type', '=', 'service'), ('planning_role_id.x_is_a_room_offer', '!=', True)]",
+        domain="[('type', '=', 'service'), '|', ('planning_role_id', '=', False), ('planning_role_id.x_is_a_room_offer', '=', False)]",
     )
     quantity = fields.Float(
         string="Qté",
