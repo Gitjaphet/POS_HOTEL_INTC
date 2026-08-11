@@ -25,6 +25,12 @@ class PosHotelChargeAddWizard(models.TransientModel):
         required=True,
         domain="[('id', 'in', available_slot_ids)]",
     )
+    product_id = fields.Many2one(
+        "product.product",
+        string="Extra",
+        required=True,
+        domain="[('available_in_pos', '=', True)]",
+    )
     name = fields.Char(
         string="Description",
         required=True,
@@ -40,6 +46,12 @@ class PosHotelChargeAddWizard(models.TransientModel):
             wizard.available_slot_ids = wizard.sale_order_id.x_room_stay_slot_ids.filtered(
                 lambda s: s.x_stay_status == 'checked_in'
             )
+
+    @api.onchange("product_id")
+    def _onchange_product_id(self):
+        if self.product_id:
+            self.name = self.product_id.display_name
+            self.amount = self.product_id.lst_price
 
     def action_confirm(self):
         self.ensure_one()
