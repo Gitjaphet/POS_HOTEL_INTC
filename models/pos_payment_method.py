@@ -81,3 +81,35 @@ class PosPaymentMethod(models.Model):
                 "company_ids": [(6, 0, [company.id])],
             })
         return account
+
+
+    @api.model
+    def _ensure_service_charge_account(self, company):
+        account = self.env["account.account"].search([
+            ("code", "=", "411300"),
+            ("company_ids", "in", company.id),
+        ], limit=1)
+        if not account:
+            account = self.env["account.account"].create({
+                "code": "411300",
+                "name": "Créances Service Chambre",
+                "account_type": "asset_receivable",
+                "company_ids": [(6, 0, [company.id])],
+                "reconcile": True,
+            })
+        return account
+
+    @api.model
+    def _ensure_service_income_account(self, company):
+        account = self.env["account.account"].search([
+            ("code", "=", "707300"),
+            ("company_ids", "in", company.id),
+        ], limit=1)
+        if not account:
+            account = self.env["account.account"].create({
+                "code": "707300",
+                "name": "Ventes services chambre",
+                "account_type": "income",
+                "company_ids": [(6, 0, [company.id])],
+            })
+        return account

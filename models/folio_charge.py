@@ -1,5 +1,6 @@
 from odoo import api, fields, models
 from odoo.exceptions import UserError
+from odoo.fields import Command
 
 
 class PosHotelFolioCharge(models.Model):
@@ -145,6 +146,16 @@ class PosHotelFolioCharge(models.Model):
              "a été incluse dans une facture. Sert au night audit pour "
              "retrouver le crédit 411200 correspondant à cette charge.",
     )
+    x_manual_income_move_id = fields.Many2one(
+        "account.move",
+        string="Écriture de revenu (ajout manuel)",
+        ondelete="restrict",
+        index=True,
+        help="Écriture comptable (débit créance/crédit revenu) postée automatiquement "
+             "quand cette charge a été ajoutée manuellement côté hôtel (hors POS), "
+             "pour simuler ce que la clôture de session POS aurait généré. "
+             "Vide pour les charges créées depuis une commande POS.",
+    )
     refund_charge_ids = fields.One2many(
         "pos.hotel.folio.charge",
         "original_charge_id",
@@ -232,6 +243,68 @@ class PosHotelFolioCharge(models.Model):
             "original_charge_id": original_charge.id,
         })
 
+    @api.model
+    def _create_manual_charge(self, vals, is_service=False):
+        """Crée une charge ajoutée manuellement côté hôtel (hors POS) et poste
+        immédiatement l'écriture de revenu correspondante (débit créance/crédit
+        revenu), puisqu'aucune commande POS/session ne le fera pour elle."""
+        charge = self.create({**vals, "is_service": is_service})
+        charge._post_manual_income_entry()
+        return charge
+
+    def _post_manual_income_entry(self):
+        self.ensure_one()
+        company = self.company_id or self.env.company
+        code_receivable = "411300" if self.is_service else "411200"
+        code_income = "707300" if self.is_service else "707200"
+
+        receivable_account = self.env["account.account"].search([
+            ("code", "=", code_receivable),
+            ("company_ids", "in", company.id),
+        ], limit=1)
+        if not receivable_account:
+            raise UserError(f"Le compte {code_receivable} est introuvable.")
+
+        income_account = self.env["account.account"].search([
+            ("code", "=", code_income),
+            ("company_ids", "in", company.id),
+        ], limit=1)
+        if not income_account:
+            raise UserError(f"Le compte {code_income} est introuvable.")
+
+        general_journal = self.env["account.journal"].search([
+            ("type", "=", "general"),
+            ("company_id", "=", company.id),
+        ], limit=1)
+        if not general_journal:
+            raise UserError("Aucun journal 'Opérations diverses' trouvé.")
+
+        partner = self.partner_id or self.sale_order_id.partner_id
+        move = self.env["account.move"].create({
+            "journal_id": general_journal.id,
+            "date": fields.Date.context_today(self),
+            "ref": f"Ajout manuel — {self.name} ({self.sale_order_id.name})",
+            "line_ids": [
+                Command.create({
+                    "account_id": receivable_account.id,
+                    "partner_id": partner.id,
+                    "name": self.name,
+                    "debit": self.amount,
+                    "credit": 0.0,
+                }),
+                Command.create({
+                    "account_id": income_account.id,
+                    "partner_id": partner.id,
+                    "name": self.name,
+                    "debit": 0.0,
+                    "credit": self.amount,
+                }),
+            ],
+        })
+        move.action_post()
+        self.write({"x_manual_income_move_id": move.id})
+        return move
+
     def _split_due(self, amount):
         """Scinde une charge 'due' en deux : une partie à régler immédiatement
         (montant `amount`, retournée), le reste restant 'due' sur la charge d'origine."""
@@ -244,14 +317,17 @@ class PosHotelFolioCharge(models.Model):
         self.write({"amount": remainder})
         return settle_part
 
+    
     @api.model
-    def _settle_amount_for_order(self, sale_order, amount, payment_method_line_id):
-        """Sélectionne les charges 'due' les plus anciennes du folio jusqu'à couvrir
-        `amount`, scindant la dernière si besoin, puis les règle en un seul paiement."""
+    def _settle_amount_for_order(self, sale_order, amount, payment_method_line_id, is_service=False):
+        """Sélectionne les charges 'due' les plus anciennes du folio (extras ou
+        services selon is_service) jusqu'à couvrir `amount`, scindant la dernière
+        si besoin, puis les règle en un seul paiement."""
         due_charges = self.search([
             ("sale_order_id", "=", sale_order.id),
             ("payment_status", "=", "due"),
             ("x_invoice_is_active", "=", False),
+            ("is_service", "=", is_service),
         ], order="date asc")
 
         total_due = sum(due_charges.mapped("amount_net"))
@@ -311,10 +387,12 @@ class PosHotelFolioCharge(models.Model):
 
     def action_settle(self, payment_method_line_id):
             """Règle les charges 'due' sélectionnées en un seul paiement groupé,
-            posté et réconcilié avec les écritures POS d'origine (compte 411200,
-            nominatives depuis l'activation de split_transactions sur le moyen
-            de paiement Transfert Chambre — voir migration 19.0.1.0.6).
-            Toutes les charges doivent appartenir au même folio et au même statut 'due'.
+            posté et réconcilié avec les écritures POS d'origine (compte 411200
+            pour les extras, 411300 pour les services, nominatives depuis
+            l'activation de split_transactions sur le moyen de paiement Transfert
+            Chambre — voir migration 19.0.1.0.6). Toutes les charges doivent
+            appartenir au même folio, au même statut 'due', et au même type
+            (extra ou service — comptes de destination différents).
             """
             if not self:
                 return
@@ -322,6 +400,8 @@ class PosHotelFolioCharge(models.Model):
                 raise UserError("Seules les charges au statut 'Dû' peuvent être réglées.")
             if len(self.sale_order_id) > 1:
                 raise UserError("Impossible de régler des charges appartenant à des folios différents en une seule fois.")
+            if len(set(self.mapped("is_service"))) > 1:
+                raise UserError("Impossible de régler des extras et des services dans un même paiement.")
 
             payment_method_line = self.env["account.payment.method.line"].browse(payment_method_line_id)
             sale_order = self.sale_order_id
@@ -329,13 +409,16 @@ class PosHotelFolioCharge(models.Model):
             currency = sale_order.currency_id
             company = sale_order.company_id
             total_amount = sum(self.mapped("amount_net"))
+            is_service = self[0].is_service
+            account_code = "411300" if is_service else "411200"
+            account_label = "Créances Service Chambre" if is_service else "Créances Transferts Chambre"
 
             room_charge_account = self.env["account.account"].search([
-                ("code", "=", "411200"),
+                ("code", "=", account_code),
                 ("company_ids", "in", company.id),
             ], limit=1)
             if not room_charge_account:
-                raise UserError("Le compte 411200 (Créances Transferts Chambre) est introuvable.")
+                raise UserError(f"Le compte {account_code} ({account_label}) est introuvable.")
 
             payment = self.env["account.payment"].create({
                 "payment_type": "inbound",
@@ -345,16 +428,17 @@ class PosHotelFolioCharge(models.Model):
                 "journal_id": payment_method_line.journal_id.id,
                 "payment_method_line_id": payment_method_line.id,
                 "currency_id": currency.id,
-                "memo": f"Règlement extras — {sale_order.name}",
+                "memo": f"Règlement {'services' if is_service else 'extras'} — {sale_order.name}",
                 "destination_account_id": room_charge_account.id,
             })
             payment.action_post()
 
-            # Le lettrage (rapprochement 411200 avec la session POS d'origine)
-            # n'est PAS tenté ici : une session POS reste "opened" tant que le
-            # service tourne, son move_id n'existe qu'à la fermeture. Le
-            # rapprochement est une opération de clôture, effectuée au night
-            # audit / à la fermeture de session — jamais en temps réel.
+            # Le lettrage (rapprochement 411200/411300 avec la session POS
+            # d'origine ou l'écriture manuelle) n'est PAS tenté ici : une
+            # session POS reste "opened" tant que le service tourne, son
+            # move_id n'existe qu'à la fermeture. Le rapprochement est une
+            # opération de clôture, effectuée au night audit — jamais en
+            # temps réel.
             self.write({
                 "payment_status": "settled",
                 "settlement_payment_id": payment.id,
@@ -376,6 +460,8 @@ class PosHotelFolioCharge(models.Model):
             raise UserError("Seules les charges au statut 'Réglé' peuvent être remboursées ici.")
         if len(self.sale_order_id) > 1:
             raise UserError("Impossible de rembourser des charges appartenant à des folios différents en une seule fois.")
+        if len(set(self.mapped("is_service"))) > 1:
+            raise UserError("Impossible de rembourser des extras et des services dans un même paiement.")
 
         payment_method_line = self.env["account.payment.method.line"].browse(payment_method_line_id)
         sale_order = self.sale_order_id
@@ -383,13 +469,16 @@ class PosHotelFolioCharge(models.Model):
         currency = sale_order.currency_id
         company = sale_order.company_id
         total_amount = sum(self.mapped("amount_net"))
+        is_service = self[0].is_service
+        account_code = "411300" if is_service else "411200"
+        account_label = "Créances Service Chambre" if is_service else "Créances Transferts Chambre"
 
         room_charge_account = self.env["account.account"].search([
-            ("code", "=", "411200"),
+            ("code", "=", account_code),
             ("company_ids", "in", company.id),
         ], limit=1)
         if not room_charge_account:
-            raise UserError("Le compte 411200 (Créances Transferts Chambre) est introuvable.")
+            raise UserError(f"Le compte {account_code} ({account_label}) est introuvable.")
 
         payment = self.env["account.payment"].create({
             "payment_type": "outbound",
@@ -399,7 +488,7 @@ class PosHotelFolioCharge(models.Model):
             "journal_id": payment_method_line.journal_id.id,
             "payment_method_line_id": payment_method_line.id,
             "currency_id": currency.id,
-            "memo": f"Remboursement extras réglés — {sale_order.name}",
+            "memo": f"Remboursement {'services' if is_service else 'extras'} réglés — {sale_order.name}",
             "destination_account_id": room_charge_account.id,
         })
         payment.action_post()
@@ -415,6 +504,7 @@ class PosHotelFolioCharge(models.Model):
                 "amount": -charge.amount_net,
                 "payment_status": "settled",
                 "is_refund": True,
+                "is_service": charge.is_service,
                 "original_charge_id": charge.id,
                 "settlement_payment_id": payment.id,
             })

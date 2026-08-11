@@ -43,6 +43,16 @@ class SaleOrder(models.Model):
         compute="_compute_folio_totals",
         help="Somme des consommations encore dues au réceptionniste.",
     )
+    x_folio_total_paid_service = fields.Monetary(
+        string="Total Service Payé",
+        compute="_compute_folio_totals",
+        help="Somme des services déjà payés, réglés par le réceptionniste.",
+    )
+    x_folio_total_due_service = fields.Monetary(
+        string="Total Service Dû",
+        compute="_compute_folio_totals",
+        help="Somme des services encore dus au réceptionniste.",
+    )
     x_folio_period_start = fields.Datetime(
         string="Début période Folio",
         compute="_compute_folio_period",
@@ -96,6 +106,9 @@ class SaleOrder(models.Model):
         "x_folio_charge_normal_ids.amount_net",
         "x_folio_charge_normal_ids.payment_status",
         "x_folio_charge_normal_ids.x_invoice_is_active",
+        "x_folio_charge_service_ids.amount_net",
+        "x_folio_charge_service_ids.payment_status",
+        "x_folio_charge_service_ids.x_invoice_is_active",
     )
     def _compute_folio_totals(self):
         for order in self:
@@ -105,6 +118,15 @@ class SaleOrder(models.Model):
             )
             order.x_folio_total_due = sum(
                 charges.filtered(
+                    lambda c: c.payment_status == "due" and not c.x_invoice_is_active
+                ).mapped("amount_net")
+            )
+            services = order.x_folio_charge_service_ids
+            order.x_folio_total_paid_service = sum(
+                services.filtered(lambda c: c.payment_status in ("paid_pos", "settled")).mapped("amount_net")
+            )
+            order.x_folio_total_due_service = sum(
+                services.filtered(
                     lambda c: c.payment_status == "due" and not c.x_invoice_is_active
                 ).mapped("amount_net")
             )

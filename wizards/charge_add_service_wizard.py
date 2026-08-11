@@ -49,7 +49,7 @@ class PosHotelChargeAddServiceWizard(models.TransientModel):
             name = line.product_id.display_name
             if line.quantity > 1:
                 name = f"{name} x{int(line.quantity)}"
-            self.env['pos.hotel.folio.charge'].create({
+            self.env['pos.hotel.folio.charge']._create_manual_charge({
                 "name": name,
                 "sale_order_id": self.sale_order_id.id,
                 "sale_order_line_id": slot.sale_line_id.id,
@@ -57,8 +57,7 @@ class PosHotelChargeAddServiceWizard(models.TransientModel):
                 "partner_id": slot.sale_line_id.order_id.partner_id.id,
                 "amount": line.subtotal,
                 "payment_status": "due",
-                "is_service": True,
-            })
+            }, is_service=True)
         return {"type": "ir.actions.act_window_close"}
 
 

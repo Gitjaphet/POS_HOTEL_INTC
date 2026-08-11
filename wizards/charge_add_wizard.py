@@ -49,7 +49,7 @@ class PosHotelChargeAddWizard(models.TransientModel):
             name = line.product_id.display_name
             if line.quantity > 1:
                 name = f"{name} x{int(line.quantity)}"
-            self.env['pos.hotel.folio.charge'].create({
+            self.env['pos.hotel.folio.charge']._create_manual_charge({
                 "name": name,
                 "sale_order_id": self.sale_order_id.id,
                 "sale_order_line_id": slot.sale_line_id.id,
