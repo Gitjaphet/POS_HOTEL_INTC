@@ -14,7 +14,13 @@ class SaleOrder(models.Model):
         "pos.hotel.folio.charge",
         "sale_order_id",
         string="Consommations POS",
-        domain=[("is_refund", "=", False)],
+        domain=[("is_refund", "=", False), ("is_service", "=", False)],
+    )
+    x_folio_charge_service_ids = fields.One2many(
+        "pos.hotel.folio.charge",
+        "sale_order_id",
+        string="Services",
+        domain=[("is_refund", "=", False), ("is_service", "=", True)],
     )
     x_folio_charge_refund_ids = fields.One2many(
         "pos.hotel.folio.charge",

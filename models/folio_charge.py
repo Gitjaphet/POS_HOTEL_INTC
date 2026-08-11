@@ -97,6 +97,12 @@ class PosHotelFolioCharge(models.Model):
         default=False,
         help="Coché automatiquement pour les lignes créées en compensation d'un remboursement POS.",
     )
+    is_service = fields.Boolean(
+        string="Est un service",
+        default=False,
+        store=True,
+        help="Coché automatiquement si le produit d'origine est de type Service (massage, transport, laverie...).",
+    )
     original_charge_id = fields.Many2one(
         "pos.hotel.folio.charge",
         string="Charge d'origine",

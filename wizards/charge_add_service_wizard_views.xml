@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <record id="pos_hotel_charge_add_service_wizard_form" model="ir.ui.view">
+    <field name="name">pos.hotel.charge.add.service.wizard.form</field>
+    <field name="model">pos.hotel.charge.add.service.wizard</field>
+    <field name="arch" type="xml">
+      <form string="Ajouter un service">
+        <group>
+          <field name="sale_order_id" invisible="1"/>
+          <field name="available_slot_ids" invisible="1"/>
+          <field name="currency_id" invisible="1"/>
+          <field name="planning_slot_id"/>
+        </group>
+        <field name="line_ids">
+          <list editable="bottom">
+            <field name="product_id"/>
+            <field name="quantity"/>
+            <field name="unit_price"/>
+            <field name="subtotal" readonly="1" sum="Total"/>
+          </list>
+        </field>
+        <footer>
+          <button name="action_confirm" string="Ajouter" type="object" class="btn-primary"/>
+          <button string="Retour" class="btn-secondary" special="cancel"/>
+        </footer>
+      </form>
+    </field>
+  </record>
+
+  <record id="pos_hotel_charge_add_service_wizard_action" model="ir.actions.act_window">
+    <field name="name">Ajouter un service</field>
+    <field name="res_model">pos.hotel.charge.add.service.wizard</field>
+    <field name="view_mode">form</field>
+    <field name="target">new</field>
+  </record>
+</odoo>

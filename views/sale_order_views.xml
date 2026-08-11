@@ -70,6 +70,39 @@
             </list>
           </field>
         </page>
+        <page string="Service" name="x_service_charge">
+          <field name="x_folio_charge_service_ids" nolabel="1">
+            <list create="0" delete="0" default_group_by="payment_status">
+              <field name="date"/>
+              <field name="name"/>
+              <field name="occupant_display"/>
+              <field name="amount_net" string="Montant" sum="Total"/>
+              <field name="refund_status" widget="badge"
+                     decoration-success="refund_status == 'none'"
+                     decoration-warning="refund_status == 'partial'"
+                     decoration-danger="refund_status == 'full'"/>
+              <field name="payment_status" widget="badge"
+                     decoration-success="payment_status == 'paid_pos'"
+                     decoration-warning="payment_status == 'due'"
+                     decoration-info="payment_status == 'settled'"/>
+              <button name="action_open_cancel_wizard" type="object"
+                      string="Annuler" icon="fa-times" title="Annuler ce service"
+                      invisible="payment_status != 'due'"/>
+
+              <button name="action_open_refund_wizard" type="object"
+                      string="Rembourser" icon="fa-undo" title="Rembourser ce service"
+                      invisible="payment_status != 'settled'"/>
+
+            </list>
+          </field>
+          <div class="oe_right" style="text-align: right; margin-top: 8px;">
+            <button name="%(pos_hotel_charge_add_service_wizard_action)d"
+                    string="Ajouter un service"
+                    type="action"
+                    class="btn-secondary"
+                    context="{'default_sale_order_id': id}"/>
+          </div>
+        </page>
         <page string="Historique des chambres" name="x_room_removal_history">
           <field name="x_room_removal_log_ids" nolabel="1">
             <list create="0" delete="0" edit="0">
