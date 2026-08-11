@@ -31,10 +31,6 @@ class PosHotelChargeAddWizard(models.TransientModel):
         required=True,
         domain="[('available_in_pos', '=', True)]",
     )
-    name = fields.Char(
-        string="Description",
-        required=True,
-    )
     amount = fields.Monetary(
         string="Montant",
         required=True,
@@ -50,7 +46,6 @@ class PosHotelChargeAddWizard(models.TransientModel):
     @api.onchange("product_id")
     def _onchange_product_id(self):
         if self.product_id:
-            self.name = self.product_id.display_name
             self.amount = self.product_id.lst_price
 
     def action_confirm(self):
@@ -59,7 +54,7 @@ class PosHotelChargeAddWizard(models.TransientModel):
             raise UserError("Le montant doit être supérieur à zéro.")
         slot = self.planning_slot_id
         self.env['pos.hotel.folio.charge'].create({
-            "name": self.name,
+            "name": self.product_id.display_name,
             "sale_order_id": self.sale_order_id.id,
             "sale_order_line_id": slot.sale_line_id.id,
             "x_room_resource_id": slot.resource_id.id,
