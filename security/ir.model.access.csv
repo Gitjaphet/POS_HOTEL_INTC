@@ -12,3 +12,4 @@ access_pos_hotel_charge_cancel_wizard_user,pos.hotel.charge.cancel.wizard.user,m
 access_pos_hotel_night_audit_user,pos.hotel.night.audit.user,model_pos_hotel_night_audit,base.group_user,1,1,1,0
 access_pos_hotel_night_audit_log_user,pos.hotel.night.audit.log.user,model_pos_hotel_night_audit_log,base.group_user,1,1,1,0
 access_pos_hotel_charge_refund_wizard_user,pos.hotel.charge.refund.wizard.user,model_pos_hotel_charge_refund_wizard,base.group_user,1,1,1,1
+access_pos_hotel_charge_add_wizard_user,pos.hotel.charge.add.wizard.user,model_pos_hotel_charge_add_wizard,base.group_user,1,1,1,1

@@ -5,3 +5,4 @@ from . import remove_room_wizard
 from . import checkin_wizard
 from . import charge_cancel_wizard
 from . import charge_refund_wizard
+from . import charge_add_wizard
