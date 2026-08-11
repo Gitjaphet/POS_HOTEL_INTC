@@ -10,9 +10,15 @@
           <field name="available_slot_ids" invisible="1"/>
           <field name="currency_id" invisible="1"/>
           <field name="planning_slot_id"/>
-          <field name="product_id"/>
-          <field name="amount"/>
         </group>
+        <field name="line_ids">
+          <list editable="bottom">
+            <field name="product_id"/>
+            <field name="quantity"/>
+            <field name="unit_price"/>
+            <field name="subtotal" readonly="1" sum="Total"/>
+          </list>
+        </field>
         <footer>
           <button name="action_confirm" string="Ajouter" type="object" class="btn-primary"/>
           <button string="Retour" class="btn-secondary" special="cancel"/>
