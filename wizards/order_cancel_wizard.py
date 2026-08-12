@@ -43,7 +43,7 @@ class PosHotelOrderCancelWizard(models.TransientModel):
     @api.depends("sale_order_id")
     def _compute_charge_amounts(self):
         for wizard in self:
-            charges = wizard.sale_order_id.x_folio_charge_normal_ids
+            charges = wizard.sale_order_id.x_folio_charge_normal_ids + wizard.sale_order_id.x_folio_charge_service_ids
             due_charges = charges.filtered(
                 lambda c: c.payment_status == "due" and not c.x_invoice_is_active
             )

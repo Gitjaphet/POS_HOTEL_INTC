@@ -185,7 +185,7 @@ class SaleOrder(models.Model):
         Doit être appelée AVANT _action_cancel(), jamais après.
         """
         self.ensure_one()
-        charges = self.x_folio_charge_normal_ids
+        charges = self.x_folio_charge_normal_ids + self.x_folio_charge_service_ids
 
         room_active_invoices = self.order_line.invoice_lines.move_id.filtered(
             lambda m: m.move_type == 'out_invoice'
@@ -229,7 +229,7 @@ class SaleOrder(models.Model):
         )
         if settled_charges and not refund_settled_charges:
             raise UserError(
-                "Ce folio a des extras réglés (compte 411200) à rembourser. "
+                "Ce folio a des extras ou services réglés à rembourser. "
                 "Cochez le remboursement dans le wizard pour continuer."
             )
         if settled_charges and refund_settled_charges:
@@ -237,7 +237,10 @@ class SaleOrder(models.Model):
                 raise UserError(
                     "Un mode de paiement pour le remboursement est requis."
                 )
-            settled_charges.action_refund_settled(refund_payment_method_line_id)
+            for is_service in set(settled_charges.mapped('is_service')):
+                settled_charges.filtered(
+                    lambda c, v=is_service: c.is_service == v
+                ).action_refund_settled(refund_payment_method_line_id)
 
         due_charges = charges.filtered(
             lambda c: c.payment_status == 'due' and not c.x_invoice_is_active
