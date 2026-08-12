@@ -38,7 +38,7 @@ class TestFolioChargeStates(TransactionCase):
             ("type", "=", "cash"),
             ("company_id", "=", cls.company.id),
         ], limit=1)
-        cls.assertTrue(journal, "Aucun journal de caisse trouvé sur la société.")
+        assert journal, "Aucun journal de caisse trouvé sur la société."
         cls.inbound_line = journal.inbound_payment_method_line_ids[:1]
         cls.outbound_line = journal.outbound_payment_method_line_ids[:1]
 
