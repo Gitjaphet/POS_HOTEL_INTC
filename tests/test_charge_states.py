@@ -1,11 +1,10 @@
 from odoo import Command, fields
 from odoo.exceptions import UserError
-from odoo.tests import tagged
-from odoo.addons.account.tests.common import AccountTestInvoicingCommon
+from odoo.tests import TransactionCase, tagged
 
 
 @tagged("post_install", "-at_install")
-class TestFolioChargeStates(AccountTestInvoicingCommon):
+class TestFolioChargeStates(TransactionCase):
     """Tests de caractérisation sur les transitions d'état d'une charge folio.
 
     ATTENTION : certains tests figent volontairement le comportement ACTUEL,
@@ -18,7 +17,7 @@ class TestFolioChargeStates(AccountTestInvoicingCommon):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.company = cls.company_data["company"]
+        cls.company = cls.env.company
 
         pm_model = cls.env["pos.payment.method"]
         pm_model._ensure_room_charge_method(cls.company)
@@ -35,7 +34,11 @@ class TestFolioChargeStates(AccountTestInvoicingCommon):
             "company_id": cls.company.id,
         })
 
-        journal = cls.company_data["default_journal_cash"]
+        journal = cls.env["account.journal"].search([
+            ("type", "=", "cash"),
+            ("company_id", "=", cls.company.id),
+        ], limit=1)
+        cls.assertTrue(journal, "Aucun journal de caisse trouvé sur la société.")
         cls.inbound_line = journal.inbound_payment_method_line_ids[:1]
         cls.outbound_line = journal.outbound_payment_method_line_ids[:1]
 
