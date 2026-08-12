@@ -117,6 +117,19 @@
             <strong>Total Service Dû : </strong>
             <field name="x_folio_total_due_service" nolabel="1" class="oe_inline"/>
           </div>
+          <separator string="Historique des remboursements"/>
+          <field name="x_folio_charge_refund_service_ids" nolabel="1">
+            <list create="0" delete="0">
+              <field name="date"/>
+              <field name="name"/>
+              <field name="original_charge_id" string="Charge d'origine"/>
+              <field name="amount" sum="Total"/>
+              <field name="payment_status" widget="badge"
+                     decoration-success="payment_status == 'paid_pos'"
+                     decoration-warning="payment_status == 'due'"
+                     decoration-info="payment_status == 'settled'"/>
+            </list>
+          </field>
         </page>
         <page string="Historique des chambres" name="x_room_removal_history">
           <field name="x_room_removal_log_ids" nolabel="1">
