@@ -361,6 +361,12 @@ class PosHotelFolioCharge(models.Model):
             raise UserError(
                 "Seul un extra encore dû peut être annulé ainsi."
             )
+        if self.x_invoice_is_active:
+            raise UserError(
+                f"Cette charge est incluse dans la facture {self.x_invoice_id.name or 'brouillon'}, "
+                "qui est toujours active. Annulez ou extournez cette facture "
+                "avant de pouvoir annuler la charge."
+            )
         return {
             'type': 'ir.actions.act_window',
             'name': "Annuler cet extra",

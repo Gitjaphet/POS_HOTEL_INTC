@@ -24,9 +24,10 @@
                      decoration-success="payment_status == 'paid_pos'"
                      decoration-warning="payment_status == 'due'"
                      decoration-info="payment_status == 'settled'"/>
+              <field name="x_invoice_is_active" column_invisible="1"/>
               <button name="action_open_cancel_wizard" type="object"
                       string="Annuler" icon="fa-times" title="Annuler cet extra"
-                      invisible="payment_status != 'due'"/>
+                      invisible="payment_status != 'due' or x_invoice_is_active"/>
 
               <button name="action_open_refund_wizard" type="object"
                       string="Rembourser" icon="fa-undo" title="Rembourser cet extra"
@@ -85,9 +86,10 @@
                      decoration-success="payment_status == 'paid_pos'"
                      decoration-warning="payment_status == 'due'"
                      decoration-info="payment_status == 'settled'"/>
+              <field name="x_invoice_is_active" column_invisible="1"/>
               <button name="action_open_cancel_wizard" type="object"
                       string="Annuler" icon="fa-times" title="Annuler ce service"
-                      invisible="payment_status != 'due'"/>
+                      invisible="payment_status != 'due' or x_invoice_is_active"/>
 
               <button name="action_open_refund_wizard" type="object"
                       string="Rembourser" icon="fa-undo" title="Rembourser ce service"
