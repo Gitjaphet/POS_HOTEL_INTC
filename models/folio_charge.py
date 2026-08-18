@@ -156,6 +156,17 @@ class PosHotelFolioCharge(models.Model):
              "pour simuler ce que la clôture de session POS aurait généré. "
              "Vide pour les charges créées depuis une commande POS.",
     )
+    x_reversal_move_id = fields.Many2one(
+        "account.move",
+        string="Écriture d'extourne",
+        ondelete="restrict",
+        index=True,
+        copy=False,
+        help="Écriture de compensation (débit revenu / crédit créance) postée "
+             "quand cette charge est annulée ou remboursée, pour neutraliser le "
+             "revenu constaté à sa création. Indispensable au night audit pour "
+             "rattacher le crédit 411200/411300 correspondant.",
+    )
     refund_charge_ids = fields.One2many(
         "pos.hotel.folio.charge",
         "original_charge_id",
@@ -303,6 +314,122 @@ class PosHotelFolioCharge(models.Model):
         })
         move.action_post()
         self.write({"x_manual_income_move_id": move.id})
+        return move
+
+
+    def _get_receivable_account(self):
+        """Compte de créance dédié à cette charge (411200 extras / 411300 services).
+
+        Point d'entrée unique : à terme, c'est ici qu'un champ de configuration
+        remplacera la recherche par code, sans toucher aux appelants.
+        """
+        self.ensure_one()
+        company = self.company_id or self.env.company
+        code = "411300" if self.is_service else "411200"
+        account = self.env["account.account"].search([
+            ("code", "=", code),
+            ("company_ids", "in", company.id),
+        ], limit=1)
+        if not account:
+            raise UserError(f"Le compte {code} est introuvable.")
+        return account
+
+    def _get_reversal_accounts(self):
+        """Détermine le couple (compte de revenu, compte de créance) à extourner.
+
+        Principe : on extourne le compte RÉELLEMENT crédité pour cette charge,
+        jamais un compte supposé.
+          1. Charge manuelle  -> relecture directe de l'écriture de revenu d'origine.
+          2. Charge POS       -> compte de revenu du produit (souvent 707000),
+                                 remappé par la position fiscale le cas échéant.
+          3. Repli            -> comptes dédiés 707200/707300, pour les charges
+                                 anciennes qui n'ont ni l'un ni l'autre.
+        """
+        self.ensure_one()
+        if self.is_refund and self.original_charge_id:
+            # Une charge de remboursement n'a pas d'origine comptable propre :
+            # les comptes à extourner sont ceux de la charge qu'elle compense.
+            return self.original_charge_id._get_reversal_accounts()
+
+        company = self.company_id or self.env.company
+        income_account = False
+        receivable_account = False
+
+        if self.x_manual_income_move_id:
+            for line in self.x_manual_income_move_id.line_ids:
+                if line.credit and not income_account:
+                    income_account = line.account_id
+                elif line.debit and not receivable_account:
+                    receivable_account = line.account_id
+
+        if not income_account and self.pos_order_line_id.product_id:
+            product = self.pos_order_line_id.product_id
+            income_account = product.product_tmpl_id._get_product_accounts().get("income")
+            fiscal_position = self.pos_order_id.fiscal_position_id
+            if fiscal_position and income_account:
+                income_account = fiscal_position.map_account(income_account)
+
+        if not income_account:
+            pm_model = self.env["pos.payment.method"]
+            income_account = (
+                pm_model._ensure_service_income_account(company)
+                if self.is_service
+                else pm_model._ensure_extras_income_account(company)
+            )
+
+        if not receivable_account:
+            receivable_account = self._get_receivable_account()
+
+        return income_account, receivable_account
+
+    def _post_reversal_entry(self, reason=None, amount=None):
+        """Poste l'écriture neutralisant le revenu constaté pour cette charge.
+
+        Miroir exact de _post_manual_income_entry : débit revenu / crédit créance.
+        On ne touche JAMAIS à l'écriture d'origine — souvent une écriture de session
+        POS agrégée, parfois sur une période close. On poste une écriture neuve
+        datée du jour, exactement comme le fait déjà x_invoice_offset_move_id.
+        """
+        self.ensure_one()
+        company = self.company_id or self.env.company
+        amount = abs(self.amount_net if amount is None else amount)
+        if self.currency_id.is_zero(amount):
+            return False
+
+        income_account, receivable_account = self._get_reversal_accounts()
+
+        journal = self.env["account.journal"].search([
+            ("type", "=", "general"),
+            ("company_id", "=", company.id),
+        ], limit=1)
+        if not journal:
+            raise UserError("Aucun journal 'Opérations diverses' trouvé.")
+
+        partner = self.partner_id or self.sale_order_id.partner_id
+        label = f"{reason or 'Extourne'} — {self.name}"
+        move = self.env["account.move"].create({
+            "journal_id": journal.id,
+            "date": fields.Date.context_today(self),
+            "ref": f"{label} ({self.sale_order_id.name})",
+            "line_ids": [
+                Command.create({
+                    "account_id": income_account.id,
+                    "partner_id": partner.id,
+                    "name": label,
+                    "debit": amount,
+                    "credit": 0.0,
+                }),
+                Command.create({
+                    "account_id": receivable_account.id,
+                    "partner_id": partner.id,
+                    "name": label,
+                    "debit": 0.0,
+                    "credit": amount,
+                }),
+            ],
+        })
+        move.action_post()
+        self.write({"x_reversal_move_id": move.id})
         return move
 
     def _split_due(self, amount):
@@ -516,4 +643,9 @@ class PosHotelFolioCharge(models.Model):
             })
 
         # Le lettrage sera fait au night audit (rapprochement différé), pas ici.
+                # TROU Y — le paiement ci-dessus ne bouge que caisse <-> créance : sans
+        # cette compensation, le revenu resterait constaté malgré l'argent rendu.
+        for refund_charge in refund_charges:
+            refund_charge._post_reversal_entry(reason="Remboursement")
+
         return payment
