@@ -233,15 +233,29 @@ class PosHotelNightAudit(models.Model):
         # (x_invoice_offset_move_id). Traité pour les 2 comptes (extras et
         # services), rapprochement par partenaire ET par compte (jamais
         # d'appariement croisé entre les deux types de créance).
+
         manual_accounts = account_411200 + account_411300
-        manual_debit_lines = manual_charges_all.mapped('x_manual_income_move_id.line_ids').filtered(
+
+        # Les charges de remboursement (miroirs négatifs) n'ont pas d'écriture
+        # de revenu propre, donc pas de x_manual_income_move_id : elles ne sont
+        # PAS dans manual_charges_all. Il faut les ajouter explicitement, sinon
+        # leur paiement de remboursement (débit) et leur extourne de revenu
+        # (crédit) resteraient invisibles — et l'extourne serait vue comme un
+        # crédit orphelin, donc bloquante.
+        manual_refund_charges = manual_charges_all.mapped('refund_charge_ids')
+        manual_charges_scope = manual_charges_all | manual_refund_charges
+
+        manual_debit_lines = manual_charges_scope.mapped('x_manual_income_move_id.line_ids').filtered(
             lambda l: l.account_id in manual_accounts and not l.reconciled
         )
         manual_credit_lines = self.env['account.move.line']
-        manual_credit_lines |= manual_charges_all.mapped('settlement_payment_id.move_id.line_ids').filtered(
+        manual_credit_lines |= manual_charges_scope.mapped('settlement_payment_id.move_id.line_ids').filtered(
             lambda l: l.account_id in manual_accounts and not l.reconciled
         )
-        manual_credit_lines |= manual_charges_all.mapped('x_invoice_offset_move_id.line_ids').filtered(
+        manual_credit_lines |= manual_charges_scope.mapped('x_invoice_offset_move_id.line_ids').filtered(
+            lambda l: l.account_id in manual_accounts and not l.reconciled
+        )
+        manual_credit_lines |= manual_charges_scope.mapped('x_reversal_move_id.line_ids').filtered(
             lambda l: l.account_id in manual_accounts and not l.reconciled
         )
 

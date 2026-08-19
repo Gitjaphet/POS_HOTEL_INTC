@@ -406,7 +406,7 @@ class PosHotelFolioCharge(models.Model):
             raise UserError("Aucun journal 'Opérations diverses' trouvé.")
 
         partner = self.partner_id or self.sale_order_id.partner_id
-        label = f"{reason or 'Extourne'} — {self.name}"
+        label = self.name if self.is_refund else f"{reason or 'Extourne'} — {self.name}"
         move = self.env["account.move"].create({
             "journal_id": journal.id,
             "date": fields.Date.context_today(self),
