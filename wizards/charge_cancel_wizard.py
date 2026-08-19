@@ -33,13 +33,7 @@ class PosHotelChargeCancelWizard(models.TransientModel):
                 "Cet extra n'est plus dû (déjà réglé, payé ou déjà annulé) — "
                 "impossible de l'annuler ainsi."
             )
-        if charge.x_invoice_is_active:
-            raise UserError(
-                f"Cette charge est incluse dans la facture {charge.x_invoice_id.name or 'brouillon'}, "
-                "qui est toujours active. Annulez ou extournez cette facture "
-                "avant de pouvoir annuler la charge."
-            )
-        charge.write({'payment_status': 'cancelled'})
+        charge._transition_to_cancelled(reason=self.reason)
         
         charge.sale_order_id.message_post(
             body=f"Extra annulé : {charge.name} ({charge.amount_net} "

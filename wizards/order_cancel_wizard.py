@@ -56,7 +56,7 @@ class PosHotelOrderCancelWizard(models.TransientModel):
         order = self.sale_order_id
         order.action_cancel_folio_charges(
             self.cancel_due_debt, self.refund_settled_charges,
-            self.refund_payment_method_line_id.id
+            self.refund_payment_method_line_id.id, self.reason
         )
         order._action_cancel()
         order.message_post(

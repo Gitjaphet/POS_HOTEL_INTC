@@ -184,7 +184,8 @@ class SaleOrder(models.Model):
 
     def action_cancel_folio_charges(self, cancel_due_debt=False,
                                      refund_settled_charges=False,
-                                     refund_payment_method_line_id=False):
+                                     refund_payment_method_line_id=False,
+                                     reason=None):
         """Vérifie et traite l'ensemble des charges du folio avant annulation
         de la commande — même logique que action_remove_room, mais appliquée
         à toutes les chambres du folio en une seule fois (blocage tout ou rien).
@@ -252,7 +253,7 @@ class SaleOrder(models.Model):
             lambda c: c.payment_status == 'due' and not c.x_invoice_is_active
         )
         if due_charges and cancel_due_debt:
-            due_charges.write({'payment_status': 'cancelled'})
+           due_charges._transition_to_cancelled(reason=reason or "Annulation commande")
 
     def _action_cancel(self):
         res = super()._action_cancel()

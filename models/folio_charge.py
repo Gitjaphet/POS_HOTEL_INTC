@@ -432,6 +432,30 @@ class PosHotelFolioCharge(models.Model):
         self.write({"x_reversal_move_id": move.id})
         return move
 
+    def _transition_to_cancelled(self, reason=None):
+        """Passe des charges dues à l'état 'cancelled' EN ÉMETTANT l'extourne.
+
+        POINT D'ENTRÉE UNIQUE de l'annulation d'une charge. C'est la seule
+        façon de garantir que le changement d'état et sa conséquence comptable
+        restent couplés : sans extourne, le revenu constaté à la création
+        resterait posté pour toujours (trou X).
+
+        Ne JAMAIS écrire payment_status='cancelled' directement ailleurs.
+        """
+        for charge in self:
+            if charge.payment_status != 'due':
+                continue
+            if charge.x_invoice_is_active:
+                raise UserError(
+                    f"La charge « {charge.name} » est incluse dans la facture "
+                    f"{charge.x_invoice_id.name or 'brouillon'}, toujours active. "
+                    "Annulez ou extournez cette facture avant d'annuler la charge."
+                )
+            # L'extourne d'abord : si elle échoue, l'état ne doit pas changer.
+            charge._post_reversal_entry(reason=reason or "Annulation")
+            charge.write({'payment_status': 'cancelled'})
+        return True
+
     def _split_due(self, amount):
         """Scinde une charge 'due' en deux : une partie à régler immédiatement
         (montant `amount`, retournée), le reste restant 'due' sur la charge d'origine."""

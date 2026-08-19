@@ -282,7 +282,7 @@ class SaleOrderLine(models.Model):
             lambda c: c.payment_status == 'due' and not c.x_invoice_is_active
         )
         if due_charges and cancel_due_debt:
-            due_charges.write({'payment_status': 'cancelled'})
+            due_charges._transition_to_cancelled(reason=reason)
 
         resource_name = slot.resource_id.name
         resource = slot.resource_id

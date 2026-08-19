@@ -64,7 +64,7 @@ class PosHotelCheckinWizard(models.TransientModel):
                         ("payment_status", "=", "due"),
                         ("x_invoice_id", "=", False),
                     ])
-                    due_charges.write({"payment_status": "cancelled"})
+                    due_charges._transition_to_cancelled(reason=self.reason)
                     self.order_id.message_post(
                         body=f"Départ chambre {slot.resource_id.name} avec dette annulée "
                              f"({line.x_due_amount} {line.currency_id.symbol}). "
