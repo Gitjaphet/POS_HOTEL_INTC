@@ -96,6 +96,8 @@ class PosHotelNightAudit(models.Model):
             self.write({'state': 'blocked'})
             return
 
+        audited_partners = self.env['res.partner']
+
         settled_charges_all = self.env['pos.hotel.folio.charge'].search([
             ('settlement_payment_id', '!=', False),
         ])
@@ -185,6 +187,8 @@ class PosHotelNightAudit(models.Model):
                     lambda l: l.account_id == account_411200
                 )
 
+            audited_partners |= (debit_lines + credit_lines).mapped('partner_id')
+
             log("Rapprochement 411200", "info",
                 f"{len(payments)} paiement(s) + {len(offset_moves)} compensation(s) facture liée(s) à ces sessions, "
                 f"{len(credit_lines)} ligne(s) crédit correspondante(s).")
@@ -267,6 +271,8 @@ class PosHotelNightAudit(models.Model):
                 f"{len(manual_debit_lines)} ligne(s) débit, {len(manual_credit_lines)} ligne(s) crédit "
                 "issues de charges ajoutées manuellement (extras/services).")
 
+            audited_partners |= (manual_debit_lines + manual_credit_lines).mapped('partner_id')
+
             manual_unmatched = []
             manual_refund_notes = []
             manual_reconciled_count = 0
@@ -316,6 +322,7 @@ class PosHotelNightAudit(models.Model):
         for account in (account_411200 + account_411300):
             orphan_credits = self.env['account.move.line'].search([
                 ('account_id', '=', account.id),
+                ('partner_id', 'in', audited_partners.ids),
                 ('parent_state', '=', 'posted'),
                 ('reconciled', '=', False),
                 ('credit', '>', 0),
