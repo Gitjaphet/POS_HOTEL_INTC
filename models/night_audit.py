@@ -213,10 +213,13 @@ class PosHotelNightAudit(models.Model):
                     (partner_debits + partner_credits).filtered('reconciled')
                 )
 
+            # Verdict différé : un même règlement peut couvrir à la fois des
+            # charges POS et des charges manuelles, traitées dans la section
+            # suivante. Bloquer ici condamnerait un crédit dont la contrepartie
+            # n'a simplement pas encore été examinée.
             if unmatched:
-                log("Appariement 411200", "blocked", "\n".join(unmatched))
-                self.write({'state': 'blocked'})
-                return
+                log("Appariement 411200", "info",
+                    "Non apparié à ce stade, revérifié en fin d'audit :\n" + "\n".join(unmatched))
 
             log("Appariement 411200", "ok", f"{reconciled_count} ligne(s) rapprochée(s) avec succès.")
             if refund_notes:
@@ -298,14 +301,36 @@ class PosHotelNightAudit(models.Model):
                     )
 
             if manual_unmatched:
-                log("Appariement charges manuelles", "blocked", "\n".join(manual_unmatched))
-                self.write({'state': 'blocked'})
-                return
+                log("Appariement charges manuelles", "info",
+                    "Non apparié à ce stade, revérifié en fin d'audit :\n" + "\n".join(manual_unmatched))
 
             log("Appariement charges manuelles", "ok",
                 f"{manual_reconciled_count} ligne(s) rapprochée(s) avec succès.")
             if manual_refund_notes:
                 log("Remboursements post-clôture (manuel)", "info", "\n".join(manual_refund_notes))
+
+        # Verdict final : on ne bloque que sur ce qui reste RÉELLEMENT non
+        # lettré après les deux passes. Les non-appariés relevés en cours de
+        # route sont revérifiés ici, car la passe suivante a pu les solder.
+        still_unmatched = []
+        for account in (account_411200 + account_411300):
+            orphan_credits = self.env['account.move.line'].search([
+                ('account_id', '=', account.id),
+                ('parent_state', '=', 'posted'),
+                ('reconciled', '=', False),
+                ('credit', '>', 0),
+            ])
+            for partner in orphan_credits.mapped('partner_id'):
+                lines = orphan_credits.filtered(lambda l: l.partner_id == partner)
+                still_unmatched.append(
+                    f"{partner.name} ({account.code}) : {len(lines)} paiement(s) "
+                    "sans écriture correspondante."
+                )
+
+        if still_unmatched:
+            log("Verdict final", "blocked", "\n".join(still_unmatched))
+            self.write({'state': 'blocked'})
+            return
 
         self.write({'state': 'done'})
         log("Clôture", "ok",
