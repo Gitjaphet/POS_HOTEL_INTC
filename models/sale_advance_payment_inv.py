@@ -125,19 +125,36 @@ class SaleAdvancePaymentInv(models.TransientModel):
             )
             if not charges_for_invoice:
                 continue
-            invoice.write({
-                "invoice_line_ids": [
-                    Command.create({
-                        "name": charge.name,
-                        "quantity": 1.0,
-                        "price_unit": charge.amount_net,
-                        "account_id": (
-                            services_income_account.id if charge.is_service else extras_income_account.id
-                        ),
-                    })
-                    for charge in charges_for_invoice
-                ],
-            })
+
+            extras = charges_for_invoice.filtered(lambda c: not c.is_service)
+            services = charges_for_invoice.filtered(lambda c: c.is_service)
+            extras_pos = extras.filtered(lambda c: c.pos_order_id)
+            extras_manual = extras - extras_pos
+
+            def _charge_line(charge):
+                return Command.create({
+                    "name": charge.name,
+                    "quantity": 1.0,
+                    "price_unit": charge.amount_net,
+                    "account_id": (
+                        services_income_account.id if charge.is_service else extras_income_account.id
+                    ),
+                })
+
+            line_commands = []
+            if extras:
+                line_commands.append(Command.create({"display_type": "line_section", "name": "Extras"}))
+                if extras_pos:
+                    line_commands.append(Command.create({"display_type": "line_subsection", "name": "Restaurant / Bar"}))
+                    line_commands += [_charge_line(c) for c in extras_pos]
+                if extras_manual:
+                    line_commands.append(Command.create({"display_type": "line_subsection", "name": "Ajoutés par l'hôtel"}))
+                    line_commands += [_charge_line(c) for c in extras_manual]
+            if services:
+                line_commands.append(Command.create({"display_type": "line_section", "name": "Services"}))
+                line_commands += [_charge_line(c) for c in services]
+
+            invoice.write({"invoice_line_ids": line_commands})
             charges_for_invoice.write({"x_invoice_id": invoice.id})
 
             for charge in charges_for_invoice:
