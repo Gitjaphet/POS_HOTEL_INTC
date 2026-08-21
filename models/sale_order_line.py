@@ -48,6 +48,16 @@ class SaleOrderLine(models.Model):
             else:
                 line.x_room_nights = 0
 
+
+    def _get_sale_order_line_multiline_description_sale(self):
+        res = super()._get_sale_order_line_multiline_description_sale()
+        if self.x_is_a_room_offer and self.x_room_resource_ids:
+            room_word = "Chambre" if len(self.x_room_resource_ids) == 1 else "Chambres"
+            room_names = ", ".join(self.x_room_resource_ids.mapped("name"))
+            nights_word = "nuit" if self.x_room_nights == 1 else "nuits"
+            res += f"\n{room_word} {room_names} — {self.x_room_nights} {nights_word}"
+        return res
+
     @api.depends('price_unit', 'x_room_nights')
     def _compute_x_room_price_per_night(self):
         for line in self:
@@ -255,6 +265,7 @@ class SaleOrderLine(models.Model):
         paid_charges = charges.filtered(
             lambda c: c.payment_status == 'paid_pos' and not c.currency_id.is_zero(c.amount_net)
         )
+
         if paid_charges:
             raise ValidationError(
                 "Cette chambre a des extras payés au POS non remboursés. "
