@@ -33,6 +33,9 @@
             "POS_HOTEL_INTC/static/src/app/screens/payment_screen/room_charge_popup/room_charge_popup.js",
             "POS_HOTEL_INTC/static/src/app/screens/payment_screen/room_charge_popup/room_charge_popup.xml",
         ],
+        "web.assets_backend": [
+            "POS_HOTEL_INTC/static/src/gantt_row_height_patch.js",
+        ],
     },
     "post_init_hook": "post_init_hook",
     "installable": True,
