@@ -68,3 +68,14 @@ class PlanningSlot(models.Model):
                     f"une période qui chevauche celle-ci ({slot.start_datetime} → "
                     f"{slot.end_datetime}). Choisissez une autre chambre ou d'autres dates."
                 )
+
+
+    @api.depends('x_stay_status')
+    def _compute_color(self):
+        for slot in self:
+            if slot.x_stay_status == 'checked_in':
+                slot.color = 10  # vert
+            elif slot.x_stay_status == 'checked_out':
+                slot.color = 5  # violet
+            else:
+                slot.color = 4  # bleu clair (confirmé, pas encore check-in)
