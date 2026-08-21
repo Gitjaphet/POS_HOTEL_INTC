@@ -11,3 +11,4 @@ from . import room_removal_log
 from . import planning_slot
 from . import sale_advance_payment_inv
 from . import night_audit
+from . import account_move
