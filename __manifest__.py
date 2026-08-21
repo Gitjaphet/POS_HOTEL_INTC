@@ -21,6 +21,7 @@
         "wizards/charge_add_service_wizard_views.xml",
         "views/sale_order_views.xml",
         "views/sale_order_action_views.xml",
+        "views/planning_gantt_color.xml",
         "views/sale_advance_payment_inv_views.xml",
     ],
     "assets": {
