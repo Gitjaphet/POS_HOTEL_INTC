@@ -79,3 +79,24 @@ class PlanningSlot(models.Model):
                 slot.color = 5  # violet
             else:
                 slot.color = 10  # vert (pending, confirmé pas encore check-in)
+
+    def _compute_display_name(self):
+        super()._compute_display_name()
+        for slot in self:
+            order = slot.sale_line_id.order_id
+            if not order:
+                continue
+            invoices = order.invoice_ids.filtered(
+                lambda m: m.state == "posted" and m.payment_state != "reversed"
+            )
+            has_invoice_payment = any(inv.payment_state in ("partial", "paid") for inv in invoices)
+            has_extra_payment = order.x_folio_total_paid > 0 or order.x_folio_total_paid_service > 0
+            if not (has_invoice_payment or has_extra_payment):
+                continue
+
+            room_fully_paid = bool(invoices) and all(inv.payment_state == "paid" for inv in invoices)
+            nothing_due = order.x_folio_total_due == 0 and order.x_folio_total_due_service == 0
+            if room_fully_paid and nothing_due:
+                slot.display_name = f"{slot.display_name} \u2705"
+            else:
+                slot.display_name = f"{slot.display_name} \U0001F4B0"
