@@ -74,8 +74,8 @@ class PlanningSlot(models.Model):
     def _compute_color(self):
         for slot in self:
             if slot.x_stay_status == 'checked_in':
-                slot.color = 10  # vert
+                slot.color = 4  # bleu
             elif slot.x_stay_status == 'checked_out':
                 slot.color = 5  # violet
             else:
-                slot.color = 4  # bleu clair (confirmé, pas encore check-in)
+                slot.color = 10  # vert (pending, confirmé pas encore check-in)
