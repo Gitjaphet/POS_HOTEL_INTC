@@ -1,7 +1,7 @@
 <odoo>
     <template id="report_invoice_document_payment_method" inherit_id="account.report_invoice_document">
         <xpath expr="//i[hasclass('oe_payment_label')]" position="inside">
-            <span t-if="payment_vals.get('payment_method_name')"> (<t t-out="payment_vals['payment_method_name']"/>)</span>
+            <span t-if="payment_vals.get('journal_name')"> (<t t-out="payment_vals['journal_name']"/>)</span>
         </xpath>
     </template>
 </odoo>
