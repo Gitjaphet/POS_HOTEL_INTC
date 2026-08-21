@@ -97,6 +97,6 @@ class PlanningSlot(models.Model):
             room_fully_paid = bool(invoices) and all(inv.payment_state == "paid" for inv in invoices)
             nothing_due = order.x_folio_total_due == 0 and order.x_folio_total_due_service == 0
             if room_fully_paid and nothing_due:
-                slot.display_name = f"{slot.display_name} \u2705"
+                slot.display_name = f"\u2705 {slot.display_name}"
             else:
-                slot.display_name = f"{slot.display_name} \U0001F4B0"
+                slot.display_name = f"\U0001F4B0 {slot.display_name}"
