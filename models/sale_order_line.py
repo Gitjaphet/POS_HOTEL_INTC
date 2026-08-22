@@ -153,7 +153,7 @@ class SaleOrderLine(models.Model):
             allocated_hours = (
                 sol.x_room_return_date - sol.x_room_start_date
             ).total_seconds() / 3600.0
-            sol.planning_slot_ids.write({
+            sol.planning_slot_ids.with_context(rental_order_updated=True).write({
                 'start_datetime': sol.x_room_start_date,
                 'end_datetime': sol.x_room_return_date,
                 'allocated_hours': allocated_hours,
