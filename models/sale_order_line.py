@@ -87,6 +87,10 @@ class SaleOrderLine(models.Model):
         return lines
     
     def write(self, vals):
+        room_lines_needing_sync = self.env['sale.order.line']
+        if 'start_date' in vals or 'return_date' in vals:
+            room_lines_needing_sync = self.filtered('x_is_a_room_offer')
+
         lines_to_check = self.env['sale.order.line']
         if 'product_uom_qty' in vals:
             lines_to_check = self.filtered(
@@ -105,6 +109,15 @@ class SaleOrderLine(models.Model):
             lines_to_notify_occupancy = self.filtered(lambda sol: sol.x_is_a_room_offer)
 
         res = super().write(vals)
+
+
+        if room_lines_needing_sync:
+            sync_vals = {}
+            if 'start_date' in vals:
+                sync_vals['x_room_start_date'] = vals['start_date']
+            if 'return_date' in vals:
+                sync_vals['x_room_return_date'] = vals['return_date']
+            room_lines_needing_sync.write(sync_vals)
 
         if lines_to_check:
             lines_to_check._generate_missing_room_slots(
