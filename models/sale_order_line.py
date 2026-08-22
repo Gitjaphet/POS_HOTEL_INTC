@@ -116,12 +116,12 @@ class SaleOrderLine(models.Model):
         if room_lines_needing_sync:
             for line in room_lines_needing_sync:
                 sync_vals = {}
-                if 'start_date' in vals or 'return_date' in vals:
-                    sync_vals['x_room_start_date'] = line.start_date
-                    sync_vals['x_room_return_date'] = line.return_date
-                else:
+                if 'x_room_start_date' in vals or 'x_room_return_date' in vals:
                     sync_vals['start_date'] = line.x_room_start_date
                     sync_vals['return_date'] = line.x_room_return_date
+                else:
+                    sync_vals['x_room_start_date'] = line.start_date
+                    sync_vals['x_room_return_date'] = line.return_date
                 line.with_context(x_syncing_room_dates=True).write(sync_vals)
 
         if lines_to_check:
