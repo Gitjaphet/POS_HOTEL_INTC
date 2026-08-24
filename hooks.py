@@ -47,7 +47,9 @@ def _disable_room_hours_automation(env):
     manipulant pickup_time ET return_time), pour ne jamais viser la mauvaise
     règle sur une autre base.
     """
-    rules = env["base.automation"].search([("model_name", "=", "planning.slot")])
+    rules = env["base.automation"].with_context(active_test=False).search([
+        ("model_name", "in", ["planning.slot", "sale.order"]),
+    ])
     for rule in rules:
         for action in rule.action_server_ids:
             code = action.code or ""
