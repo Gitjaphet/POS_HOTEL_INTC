@@ -91,7 +91,15 @@ class SaleOrderLine(models.Model):
                     'x_room_start_date': line.start_date,
                     'x_room_return_date': line.return_date,
                 })
-        lines.filtered(lambda sol: sol.x_is_a_room_offer)._notify_room_occupancy_change()
+        room_lines = lines.filtered(lambda sol: sol.x_is_a_room_offer)
+        room_lines._notify_room_occupancy_change()
+        if room_lines:
+            # Le texte de description doit refléter les dates chambre posées
+            # juste au-dessus — l'écriture sous x_syncing_room_dates ne passe pas
+            # par le recalcul du write(), sinon il resterait à "0 nuits".
+            self.env.add_to_compute(
+                self.env['sale.order.line']._fields['name'], room_lines
+            )
         return lines
     
     def write(self, vals):
@@ -140,6 +148,17 @@ class SaleOrderLine(models.Model):
             lines_to_sync_dates._sync_existing_room_slots_dates()
         if lines_to_notify_occupancy:
             lines_to_notify_occupancy._notify_room_occupancy_change()
+
+        # Le texte de description (n° chambre + nuits + dates) doit suivre tout
+        # changement de dates chambre, y compris quand _sync_existing_room_slots_dates
+        # n'est pas appelé (commande encore en devis, ou sans planning.slot) — sinon
+        # il reste figé sur une valeur périmée.
+        if 'x_room_start_date' in vals or 'x_room_return_date' in vals:
+            room_lines = self.filtered('x_is_a_room_offer')
+            if room_lines:
+                self.env.add_to_compute(
+                    self.env['sale.order.line']._fields['name'], room_lines
+                )
 
         return res
 
