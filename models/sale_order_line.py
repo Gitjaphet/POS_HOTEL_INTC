@@ -159,7 +159,17 @@ class SaleOrderLine(models.Model):
                 'allocated_hours': allocated_hours,
                 'allocated_percentage': 100,
             })
+        # Le mécanisme natif qui mettrait le champ 'name' en file de recalcul
+        # (sale_renting_planning/models/planning_slot.py::write(), normalement
+        # déclenché quand un planning.slot est reprogrammé) est volontairement
+        # court-circuité ci-dessus par notre contexte rental_order_updated=True
+        # (pour empêcher l'écrasement des dates par le recalcul natif min/max
+        # de tous les créneaux). Effet de bord : le texte de description
+        # (numéro de chambre + nuits + dates) n'est alors jamais remis en file
+        # de recalcul. On le fait nous-mêmes explicitement ici.
+        self.env.add_to_compute(self.env['sale.order.line']._fields['name'], self)
 
+        
     def _get_free_room_resources(self):
         """Ressources (chambres) du rôle produit de cette ligne, libres sur
         x_room_start_date/x_room_return_date, hors ressources déjà utilisées par la ligne."""
