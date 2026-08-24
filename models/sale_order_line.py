@@ -81,8 +81,16 @@ class SaleOrderLine(models.Model):
         lines = super().create(vals_list)
         for line in lines:
             if line.x_is_a_room_offer and not line.x_room_start_date:
-                line.x_room_start_date = line.start_date
-                line.x_room_return_date = line.return_date
+                # Écriture UNIQUE des deux dates, et sous x_syncing_room_dates :
+                # deux assignations séparées déclencheraient chacune notre write(),
+                # et la première pousserait return_date=False (pas encore assigné)
+                # sur order.rental_return_date — écrasant la date de fin venue du
+                # Planning. La garde de contexte empêche toute rétro-écriture vers
+                # la commande : ici les champs natifs sont la source, pas la cible.
+                line.with_context(x_syncing_room_dates=True).write({
+                    'x_room_start_date': line.start_date,
+                    'x_room_return_date': line.return_date,
+                })
         lines.filtered(lambda sol: sol.x_is_a_room_offer)._notify_room_occupancy_change()
         return lines
     
@@ -169,7 +177,7 @@ class SaleOrderLine(models.Model):
         # de recalcul. On le fait nous-mêmes explicitement ici.
         self.env.add_to_compute(self.env['sale.order.line']._fields['name'], self)
 
-        
+
     def _get_free_room_resources(self):
         """Ressources (chambres) du rôle produit de cette ligne, libres sur
         x_room_start_date/x_room_return_date, hors ressources déjà utilisées par la ligne."""
