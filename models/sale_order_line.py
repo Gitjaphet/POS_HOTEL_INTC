@@ -42,14 +42,41 @@ class SaleOrderLine(models.Model):
             line.x_room_resource_ids = resources
             line.x_room_resource_names = ", ".join(resources.mapped('name'))
 
-    @api.depends('x_room_start_date', 'x_room_return_date')
+    def _get_room_recurrence(self):
+        """Récurrence tarifaire applicable à cette ligne (Nights, Daily,
+        Horaire, Monthly…), via le sélecteur natif. Sert à exprimer la durée
+        du séjour dans l'unité réellement facturée plutôt qu'en nuits en dur.
+        """
+        self.ensure_one()
+        pricing = self.env['product.pricing']._get_first_suitable_pricing(
+            self.product_id, pricelist=self.order_id.pricelist_id
+        )
+        return pricing.recurrence_id
+
+
+    @api.depends('x_room_start_date', 'x_room_return_date', 'product_id', 'order_id.pricelist_id')
     def _compute_x_room_nights(self):
+        """Nombre d'unités facturées sur la période (nuits, jours, heures…
+        selon la récurrence du produit). Le champ garde son nom historique
+        pour ne pas casser vues/rapports/migrations.
+        """
         for line in self:
-            if line.x_room_start_date and line.x_room_return_date:
+            if not (line.x_room_start_date and line.x_room_return_date):
+                line.x_room_nights = 0
+                continue
+            recurrence = line._get_room_recurrence()
+            if not recurrence:
                 delta = line.x_room_return_date - line.x_room_start_date
                 line.x_room_nights = max(1, delta.days + (1 if delta.seconds else 0))
-            else:
-                line.x_room_nights = 0
+                continue
+            vals = self.env['product.pricing']._compute_duration_vals(
+                line.x_room_start_date, line.x_room_return_date
+            )
+            duration_in_unit = vals[recurrence.unit]
+            converted, _label = recurrence._get_converted_duration_and_label(duration_in_unit)
+            line.x_room_nights = max(1, int(converted))
+
+    
 
     def _get_rental_order_line_description(self):
         """Le natif construit ce texte depuis order_id.rental_start_date /
@@ -90,8 +117,18 @@ class SaleOrderLine(models.Model):
         if self.x_is_a_room_offer and self.x_room_resource_ids:
             room_word = "Chambre" if len(self.x_room_resource_ids) == 1 else "Chambres"
             room_names = ", ".join(self.x_room_resource_ids.mapped("name"))
-            nights_word = "nuit" if self.x_room_nights == 1 else "nuits"
-            res += f"\n{room_word} {room_names} — {self.x_room_nights} {nights_word}"
+            # Unité tirée de la récurrence tarifaire du produit (Nights, Daily,
+            # Horaire, Monthly…) plutôt que "nuit(s)" en dur : le même module
+            # sert aussi des chambres facturées à l'heure, au jour ou au mois.
+            # Repli en français si aucune récurrence n'est configurée.
+            recurrence = self._get_room_recurrence()
+            if recurrence:
+                _converted, unit_word = recurrence._get_converted_duration_and_label(
+                    self.x_room_nights
+                )
+            else:
+                unit_word = "nuit" if self.x_room_nights == 1 else "nuits"
+            res += f"\n{room_word} {room_names} — {self.x_room_nights} {unit_word}"
         return res
 
     @api.depends('price_unit', 'x_room_nights')
