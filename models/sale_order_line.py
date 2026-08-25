@@ -152,27 +152,31 @@ class SaleOrderLine(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         lines = super().create(vals_list)
-        for line in lines:
-            if line.x_is_a_room_offer and not line.x_room_start_date:
-                # Écriture UNIQUE des deux dates, et sous x_syncing_room_dates :
-                # deux assignations séparées déclencheraient chacune notre write(),
-                # et la première pousserait return_date=False (pas encore assigné)
-                # sur order.rental_return_date — écrasant la date de fin venue du
-                # Planning. La garde de contexte empêche toute rétro-écriture vers
-                # la commande : ici les champs natifs sont la source, pas la cible.
-                line.with_context(x_syncing_room_dates=True).write({
-                    'x_room_start_date': line.start_date,
-                    'x_room_return_date': line.return_date,
-                })
         room_lines = lines.filtered(lambda sol: sol.x_is_a_room_offer)
-        room_lines._notify_room_occupancy_change()
+
+        # Reprise des dates depuis les champs natifs quand la ligne naît sans
+        # période propre (création depuis le Planning/Gantt).
+        # Écriture UNIQUE des deux dates, et sous x_syncing_room_dates : deux
+        # assignations séparées déclencheraient chacune notre write(), et la
+        # première pousserait return_date=False (pas encore assigné) sur
+        # order.rental_return_date — écrasant la date de fin venue du Planning.
+        # La garde de contexte empêche toute rétro-écriture vers la commande :
+        # ici les champs natifs sont la source, pas la cible.
+        for line in room_lines.filtered(lambda sol: not sol.x_room_start_date):
+            line.with_context(x_syncing_room_dates=True).write({
+                'x_room_start_date': line.start_date,
+                'x_room_return_date': line.return_date,
+            })
+
+        # La période est désormais établie pour TOUTE ligne chambre — qu'elle
+        # vienne d'être reprise ci-dessus ou qu'elle ait été fournie à la
+        # création (wizard, import). Le prix et le libellé en dérivent.
+        room_lines._apply_room_period_price()
         if room_lines:
-            # Le texte de description doit refléter les dates chambre posées
-            # juste au-dessus — l'écriture sous x_syncing_room_dates ne passe pas
-            # par le recalcul du write(), sinon il resterait à "0 nuits".
             self.env.add_to_compute(
                 self.env['sale.order.line']._fields['name'], room_lines
             )
+        room_lines._notify_room_occupancy_change()
         return lines
     
     def write(self, vals):
@@ -571,6 +575,26 @@ class SaleOrderLine(models.Model):
             )
 
         return vals_list_per_sol
+
+    def _apply_room_period_price(self):
+        """Aligne price_unit sur la période de séjour.
+
+        Le prix d'une chambre dérive de sa durée : à la création, le natif le
+        calcule AVANT que x_room_start_date/x_room_return_date ne soient posées
+        et retombe donc sur le prix unitaire de base (1 Ar au lieu de 9 h × 5 Ar).
+
+        N'est appelée que là où la période vient d'être ÉTABLIE (création,
+        génération de créneaux), jamais sur simple modification : un prix
+        négocié à la main ne doit pas être écrasé silencieusement. Le formulaire
+        a son propre onchange, _adjust_room_stay_date recalcule explicitement.
+        """
+        for line in self:
+            if (
+                line.x_is_a_room_offer
+                and line.x_room_start_date
+                and line.x_room_return_date
+            ):
+                line.price_unit = line._get_pricelist_price()
 
     def _get_pricelist_price(self):
         if self.is_rental and self.x_is_a_room_offer and self.x_room_start_date and self.x_room_return_date:
