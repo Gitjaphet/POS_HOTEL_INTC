@@ -116,8 +116,15 @@ class SaleOrderLine(models.Model):
                 lambda sol: sol.is_rental and sol.x_is_a_room_offer and sol.order_id.state == 'sale'
             )
 
+        # Garde symétrique de celle du bloc room_lines_needing_sync ci-dessus :
+        # sous x_syncing_room_dates, l'écriture est une synchro interne dont les
+        # slots sont déjà (ou vont être) la source — redescendre vers eux
+        # relancerait la cascade et pourrait écraser des slots portant des
+        # valeurs distinctes (cas multi-chambres).
         lines_to_sync_dates = self.env['sale.order.line']
-        if 'x_room_start_date' in vals or 'x_room_return_date' in vals:
+        if not self.env.context.get('x_syncing_room_dates') and (
+            'x_room_start_date' in vals or 'x_room_return_date' in vals
+        ):
             lines_to_sync_dates = self.filtered(
                 lambda sol: sol.is_rental and sol.x_is_a_room_offer
                 and sol.order_id.state == 'sale' and sol.planning_slot_ids
