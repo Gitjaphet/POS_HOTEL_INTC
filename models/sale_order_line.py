@@ -137,15 +137,37 @@ class SaleOrderLine(models.Model):
         res = super().write(vals)
 
         if room_lines_needing_sync:
-            for line in room_lines_needing_sync:
-                sync_vals = {}
-                if 'x_room_start_date' in vals or 'x_room_return_date' in vals:
-                    sync_vals['start_date'] = line.x_room_start_date
-                    sync_vals['return_date'] = line.x_room_return_date
-                else:
-                    sync_vals['x_room_start_date'] = line.start_date
-                    sync_vals['x_room_return_date'] = line.return_date
-                line.with_context(x_syncing_room_dates=True).write(sync_vals)
+            if 'x_room_start_date' in vals or 'x_room_return_date' in vals:
+                # Sens ligne → commande. rental_start_date/rental_return_date sont
+                # des champs D'AGRÉGAT au niveau commande : ils doivent porter le
+                # min/max de TOUTES les lignes chambre, jamais les dates de la seule
+                # ligne éditée (sinon une chambre courte ramènerait la commande
+                # entière à sa propre date).
+                # slots_rescheduled=True bride le mécanisme natif
+                # (sale_renting_planning/models/sale_order.py::write) qui, à chaque
+                # changement de rental_*, repousse la nouvelle valeur sur TOUS les
+                # slots alignés sur l'ancienne — ce qui écrase les chambres aux
+                # périodes distinctes. Nos propres slots sont déjà synchronisés par
+                # _sync_existing_room_slots_dates().
+                for order in room_lines_needing_sync.order_id:
+                    room_lines = order.order_line.filtered(
+                        lambda sol: sol.x_is_a_room_offer
+                        and sol.x_room_start_date and sol.x_room_return_date
+                    )
+                    if not room_lines:
+                        continue
+                    order.with_context(slots_rescheduled=True).write({
+                        'rental_start_date': min(room_lines.mapped('x_room_start_date')),
+                        'rental_return_date': max(room_lines.mapped('x_room_return_date')),
+                    })
+            else:
+                # Sens commande → ligne (les champs natifs ont bougé) : on recopie
+                # tel quel, en une seule écriture (cf. le commentaire de create()).
+                for line in room_lines_needing_sync:
+                    line.with_context(x_syncing_room_dates=True).write({
+                        'x_room_start_date': line.start_date,
+                        'x_room_return_date': line.return_date,
+                    })
 
         if lines_to_check:
             lines_to_check._generate_missing_room_slots(
