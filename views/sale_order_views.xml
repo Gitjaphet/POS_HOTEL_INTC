@@ -176,9 +176,7 @@
       <xpath expr="//field[@name='rental_start_date']" position="attributes">
         <attribute name="invisible">x_folio_is_multi_room</attribute>
       </xpath>
-      <xpath expr="//field[@name='rental_return_date']" position="attributes">
-        <attribute name="invisible">x_folio_is_multi_room</attribute>
-      </xpath>
+      
 
       <button name="action_cancel" position="attributes">
         <attribute name="invisible">1</attribute>
