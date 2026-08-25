@@ -1,5 +1,8 @@
+from pytz import timezone, UTC
+
 from odoo import api, fields, models
 from odoo.exceptions import ValidationError
+from odoo.tools import format_datetime, format_time
 
 
 class SaleOrderLine(models.Model):
@@ -47,6 +50,39 @@ class SaleOrderLine(models.Model):
                 line.x_room_nights = max(1, delta.days + (1 if delta.seconds else 0))
             else:
                 line.x_room_nights = 0
+
+    def _get_rental_order_line_description(self):
+        """Le natif construit ce texte depuis order_id.rental_start_date /
+        rental_return_date — les dates AGRÉGÉES de la commande. Correct tant
+        qu'une commande ne porte qu'une seule période, faux dès que plusieurs
+        chambres ont des séjours distincts : chaque ligne afficherait alors
+        l'enveloppe globale du folio au lieu de sa propre période.
+        Même logique que le natif (dont le cas « même jour »), mais sur les
+        dates de la ligne. Aucun hook natif ne permet de les injecter : les
+        deux dates y sont lues en dur sur la commande, d'où la réécriture.
+        """
+        if not (self.x_is_a_room_offer and self.x_room_start_date and self.x_room_return_date):
+            return super()._get_rental_order_line_description()
+
+        tz = self._get_tz()
+        start_date = self.x_room_start_date
+        return_date = self.x_room_return_date
+        env = self.with_context(use_babel=True).env
+
+        if (
+            start_date.replace(tzinfo=UTC).astimezone(timezone(tz)).date()
+            == return_date.replace(tzinfo=UTC).astimezone(timezone(tz)).date()
+        ):
+            # Départ le jour même : le natif n'affiche alors que l'heure de fin.
+            return_date_part = format_time(env, return_date, tz=tz, time_format='short')
+        else:
+            return_date_part = format_datetime(env, return_date, tz=tz, dt_format='short')
+        start_date_part = format_datetime(env, start_date, tz=tz, dt_format='short')
+        return self.env._(
+            "\n%(from_date)s to %(to_date)s",
+            from_date=start_date_part,
+            to_date=return_date_part,
+        )
 
 
     def _get_sale_order_line_multiline_description_sale(self):
