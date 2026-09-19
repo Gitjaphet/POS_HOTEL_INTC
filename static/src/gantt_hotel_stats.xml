@@ -1,43 +1,60 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
 
+    <t t-name="POS_HOTEL_INTC.HotelStatsTile">
+        <div class="o_hotel_tile" t-att-class="tileClass">
+            <span class="o_hotel_tile_value" t-esc="tileValue"/>
+            <span class="o_hotel_tile_label" t-esc="tileLabel"/>
+        </div>
+    </t>
+
     <t t-name="POS_HOTEL_INTC.HotelStats">
-        <div t-if="hotelStats.data" class="o_hotel_stats d-flex flex-wrap align-items-center gap-3 ms-3 small">
-            <span class="text-muted fw-bold" t-esc="hotelStats.data.reference_date"/>
+        <div t-if="hotelStats.data" class="o_hotel_stats">
+            <div class="o_hotel_stats_group">
+                <span class="o_hotel_stats_scope">Aujourd'hui</span>
+                <div class="o_hotel_tiles">
+                    <div class="o_hotel_tile o_hotel_tile_occupied">
+                        <span class="o_hotel_tile_value" t-esc="hotelStats.data.occupied"/>
+                        <span class="o_hotel_tile_label">Occupées</span>
+                    </div>
+                    <div class="o_hotel_tile o_hotel_tile_reserved">
+                        <span class="o_hotel_tile_value" t-esc="hotelStats.data.reserved"/>
+                        <span class="o_hotel_tile_label">Réservées</span>
+                    </div>
+                    <div class="o_hotel_tile o_hotel_tile_free">
+                        <span class="o_hotel_tile_value">
+                            <t t-esc="hotelStats.data.free"/><small t-esc="'/' + hotelStats.data.total_rooms"/>
+                        </span>
+                        <span class="o_hotel_tile_label">Libres</span>
+                    </div>
+                    <div class="o_hotel_tile o_hotel_tile_soon">
+                        <span class="o_hotel_tile_value" t-esc="hotelStats.data.upcoming_departures"/>
+                        <span class="o_hotel_tile_label">Départs à venir</span>
+                    </div>
+                    <div class="o_hotel_tile o_hotel_tile_paid">
+                        <span class="o_hotel_tile_value" t-esc="hotelStats.data.paid"/>
+                        <span class="o_hotel_tile_label">Payées</span>
+                    </div>
+                </div>
+            </div>
 
-            <span class="d-flex align-items-center gap-1" title="Chambres occupées (client présent)">
-                <span class="o_hotel_dot" style="background-color:#5B899E"/>
-                Occupées : <b t-esc="hotelStats.data.occupied"/>
-            </span>
-            <span class="d-flex align-items-center gap-1" title="Réservations confirmées, client pas encore arrivé">
-                <span class="o_hotel_dot" style="background-color:#4CAF50"/>
-                Réservées : <b t-esc="hotelStats.data.reserved"/>
-            </span>
-            <span class="d-flex align-items-center gap-1" title="Séjours terminés">
-                <span class="o_hotel_dot" style="background-color:#9C27B0"/>
-                Partis : <b t-esc="hotelStats.data.departed"/>
-            </span>
-
-            <span class="vr"/>
-
-            <span title="Chambres libres aujourd'hui">
-                Libres : <b t-esc="hotelStats.data.free"/> / <t t-esc="hotelStats.data.total_rooms"/>
-            </span>
-            <span title="Arrivées prévues aujourd'hui">
-                Arrivées : <b t-esc="hotelStats.data.arrivals"/>
-            </span>
-            <span title="Départs prévus aujourd'hui">
-                Départs : <b t-esc="hotelStats.data.departures"/>
-            </span>
-            <span title="Chambres ayant reçu un paiement (acompte ou solde)">
-                💰 Payées : <b t-esc="hotelStats.data.paid"/>
-            </span>
-
-            <span class="vr"/>
-
-            <span class="text-muted" title="Réservations annulées sur la période affichée">
-                Annulées : <b t-esc="hotelStats.data.cancelled"/>
-            </span>
+            <div class="o_hotel_stats_group">
+                <span class="o_hotel_stats_scope">Période affichée</span>
+                <div class="o_hotel_tiles">
+                    <div class="o_hotel_tile o_hotel_tile_arrivals">
+                        <span class="o_hotel_tile_value" t-esc="hotelStats.data.arrivals"/>
+                        <span class="o_hotel_tile_label">Arrivées</span>
+                    </div>
+                    <div class="o_hotel_tile o_hotel_tile_departures">
+                        <span class="o_hotel_tile_value" t-esc="hotelStats.data.departures"/>
+                        <span class="o_hotel_tile_label">Départs</span>
+                    </div>
+                    <div class="o_hotel_tile o_hotel_tile_cancelled">
+                        <span class="o_hotel_tile_value" t-esc="hotelStats.data.cancelled"/>
+                        <span class="o_hotel_tile_label">Annulées</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </t>
 
