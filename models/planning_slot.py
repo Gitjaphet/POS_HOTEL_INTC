@@ -1,3 +1,7 @@
+from datetime import timedelta
+
+import pytz
+
 from odoo import api, fields, models
 from odoo.exceptions import ValidationError
 
@@ -86,17 +90,94 @@ class PlanningSlot(models.Model):
             order = slot.sale_line_id.order_id
             if not order:
                 continue
-            invoices = order.invoice_ids.filtered(
-                lambda m: m.state == "posted" and m.payment_state != "reversed"
-            )
-            has_invoice_payment = any(inv.payment_state in ("partial", "paid") for inv in invoices)
-            has_extra_payment = order.x_folio_total_paid > 0 or order.x_folio_total_paid_service > 0
-            if not (has_invoice_payment or has_extra_payment):
-                continue
-
-            room_fully_paid = bool(invoices) and all(inv.payment_state == "paid" for inv in invoices)
-            nothing_due = order.x_folio_total_due == 0 and order.x_folio_total_due_service == 0
-            if room_fully_paid and nothing_due:
+            # Règle 💰/✅ centralisée sur le folio (sale.order) pour rester
+            # identique aux compteurs du tableau de bord du planning.
+            payment_state = order._get_folio_payment_state()
+            if payment_state == 'paid':
                 slot.display_name = f"\u2705 {slot.display_name}"
-            else:
+            elif payment_state == 'partial':
                 slot.display_name = f"\U0001F4B0 {slot.display_name}"
+
+    @api.model
+    def get_hotel_planning_stats(self, period_start=None, period_stop=None):
+        """Compteurs du tableau de bord affiché au-dessus du planning hôtel.
+
+        Tous les compteurs de chambres sont calculés à la date du JOUR
+        (fuseau de l'utilisateur), pas sur la période affichée : un
+        réceptionniste veut savoir l'état de l'hôtel maintenant, pas une
+        moyenne du mois. Seul 'cancelled' porte sur la période affichée,
+        une annulation étant un événement et non un état.
+
+        :param period_start: début de la période affichée (str ou datetime)
+        :param period_stop: fin de la période affichée
+        :return: dict de compteurs, consommé par le composant JS des contrôles
+        """
+        tz = pytz.timezone(self.env.user.tz or 'UTC')
+        now_local = fields.Datetime.context_timestamp(self, fields.Datetime.now())
+        day_start_local = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
+        day_stop_local = day_start_local + timedelta(days=1)
+        # Repasse en UTC naïf : c'est le format de stockage des datetimes Odoo.
+        day_start = day_start_local.astimezone(pytz.UTC).replace(tzinfo=None)
+        day_stop = day_stop_local.astimezone(pytz.UTC).replace(tzinfo=None)
+
+        room_domain = [('role_id.x_is_a_room_offer', '=', True)]
+
+        # Une seule lecture des séjours couvrant aujourd'hui : le volume est
+        # borné par le nombre de chambres, donc le coût ne grandit pas avec
+        # l'historique. Tous les compteurs du jour en dérivent en mémoire.
+        slots_today = self.search(room_domain + [
+            ('start_datetime', '<', day_stop),
+            ('end_datetime', '>=', day_start),
+        ])
+        occupied = slots_today.filtered(lambda s: s.x_stay_status == 'checked_in')
+        reserved = slots_today.filtered(lambda s: s.x_stay_status == 'pending')
+        departed = slots_today.filtered(lambda s: s.x_stay_status == 'checked_out')
+
+        # Une chambre dont le client est parti est de nouveau attribuable :
+        # seuls 'pending' et 'checked_in' immobilisent la ressource.
+        busy_slots = occupied | reserved
+        busy_rooms = len(set(busy_slots.mapped('resource_id').ids))
+        Resource = self.env['resource.resource']
+        total_rooms = Resource.search_count(Resource._get_room_resource_domain())
+
+        # Règle 💰/✅ empruntée au folio pour rester alignée sur les pastilles.
+        paid_rooms = sum(
+            1 for slot in busy_slots
+            if slot.sale_line_id.order_id
+            and slot.sale_line_id.order_id._get_folio_payment_state() != 'none'
+        )
+
+        arrivals = self.search_count(room_domain + [
+            ('start_datetime', '>=', day_start),
+            ('start_datetime', '<', day_stop),
+        ])
+        departures = self.search_count(room_domain + [
+            ('end_datetime', '>=', day_start),
+            ('end_datetime', '<', day_stop),
+        ])
+
+        # Les séjours annulés sont supprimés du planning (sale.order
+        # _action_cancel -> unlink des slots), volontairement : un slot
+        # fantôme bloquerait la contrainte anti-double-booking lors d'une
+        # nouvelle réservation. Le compteur se prend donc sur les commandes.
+        cancelled = 0
+        if period_start and period_stop:
+            cancelled = self.env['sale.order'].search_count([
+                ('state', '=', 'cancel'),
+                ('order_line.x_is_a_room_offer', '=', True),
+                ('rental_start_date', '<', fields.Datetime.to_datetime(period_stop)),
+                ('rental_return_date', '>=', fields.Datetime.to_datetime(period_start)),
+            ])
+
+        return {
+            'reference_date': fields.Date.to_string(day_start_local.date()),
+            'occupied': len(occupied),
+            'reserved': len(reserved),
+            'departed': len(departed),
+            'free': max(total_rooms - busy_rooms, 0),
+            'total_rooms': total_rooms,
+            'arrivals': arrivals,
+            'departures': departures,
+            'paid': paid_rooms,
+            'cancelled': cancelled,
+        }

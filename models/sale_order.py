@@ -270,3 +270,38 @@ class SaleOrder(models.Model):
             if hotel_view:
                 return hotel_view.id
         return super().get_formview_id(access_uid=access_uid)
+
+
+    def _get_folio_payment_state(self):
+        """État de paiement global du folio : 'none', 'partial' ou 'paid'.
+
+        Source de vérité unique de la règle 💰/✅ : utilisée à la fois par
+        l'icône des pastilles du planning (planning.slot._compute_display_name)
+        et par les compteurs du tableau de bord. Ne jamais dupliquer cette
+        logique ailleurs, sous peine de voir les deux affichages diverger.
+
+        'partial' = un paiement existe quelque part sur le folio (acompte,
+        paiement partiel de facture, extra ou service réglé) mais il reste
+        quelque chose à encaisser.
+        'paid' = facture(s) chambre soldée(s) ET plus aucun extra ni service dû.
+        """
+        self.ensure_one()
+        invoices = self.invoice_ids.filtered(
+            lambda m: m.state == "posted" and m.payment_state != "reversed"
+        )
+        has_invoice_payment = any(
+            inv.payment_state in ("partial", "paid") for inv in invoices
+        )
+        has_extra_payment = (
+            self.x_folio_total_paid > 0 or self.x_folio_total_paid_service > 0
+        )
+        if not (has_invoice_payment or has_extra_payment):
+            return 'none'
+
+        room_fully_paid = bool(invoices) and all(
+            inv.payment_state == "paid" for inv in invoices
+        )
+        nothing_due = (
+            self.x_folio_total_due == 0 and self.x_folio_total_due_service == 0
+        )
+        return 'paid' if (room_fully_paid and nothing_due) else 'partial'

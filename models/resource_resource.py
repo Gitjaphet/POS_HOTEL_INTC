@@ -25,8 +25,19 @@ class ResourceResource(models.Model):
             resource.x_current_partner_id = slot.sale_line_id.order_id.partner_id if slot and slot.sale_line_id else False
 
     @api.model
-    def _load_pos_data_domain(self, data, config):
+    def _get_room_resource_domain(self):
+        """Domaine des ressources qui sont des chambres physiques.
+
+        Source de vérité unique : tout appelant (chargement POS, statistiques
+        du planning hôtel) passe par ici plutôt que de redéfinir le domaine,
+        pour qu'un changement de critère ne laisse jamais deux définitions
+        divergentes dans le module.
+        """
         return [("default_role_id.x_is_a_room_offer", "=", True)]
+
+    @api.model
+    def _load_pos_data_domain(self, data, config):
+        return self._get_room_resource_domain()
 
     @api.model
     def _load_pos_data_fields(self, config):
