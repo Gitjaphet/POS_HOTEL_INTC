@@ -153,26 +153,40 @@ class PlanningSlot(models.Model):
             and slot.sale_line_id.order_id._get_folio_payment_state() != 'none'
         )
 
-        arrivals = self.search_count(room_domain + [
-            ('start_datetime', '>=', day_start),
-            ('start_datetime', '<', day_stop),
-        ])
-        departures = self.search_count(room_domain + [
+        # Départs à venir : séjours encore en cours se terminant dans les
+        # 2 prochains jours. Toujours relatif à aujourd'hui, jamais à la
+        # période affichée — "dans 2 jours" n'a de sens que depuis maintenant.
+        soon = day_start + timedelta(days=2)
+        upcoming_departures = self.search_count(room_domain + [
             ('end_datetime', '>=', day_start),
-            ('end_datetime', '<', day_stop),
+            ('end_datetime', '<', soon),
+            ('x_stay_status', '!=', 'checked_out'),
         ])
 
-        # Les séjours annulés sont supprimés du planning (sale.order
-        # _action_cancel -> unlink des slots), volontairement : un slot
-        # fantôme bloquerait la contrainte anti-double-booking lors d'une
-        # nouvelle réservation. Le compteur se prend donc sur les commandes.
-        cancelled = 0
+        # Événements de la période affichée, par opposition aux états du jour
+        # ci-dessus : une arrivée, un départ ou une annulation est un fait
+        # daté, qu'on compte donc sur ce que l'utilisateur regarde.
+        arrivals = departures = cancelled = 0
         if period_start and period_stop:
+            p_start = fields.Datetime.to_datetime(period_start)
+            p_stop = fields.Datetime.to_datetime(period_stop)
+            arrivals = self.search_count(room_domain + [
+                ('start_datetime', '>=', p_start),
+                ('start_datetime', '<', p_stop),
+            ])
+            departures = self.search_count(room_domain + [
+                ('end_datetime', '>=', p_start),
+                ('end_datetime', '<', p_stop),
+            ])
+            # Les séjours annulés sont supprimés du planning (sale.order
+            # _action_cancel -> unlink des slots) : un slot fantôme bloquerait
+            # la contrainte anti-double-booking. Le compteur passe donc par
+            # les commandes.
             cancelled = self.env['sale.order'].search_count([
                 ('state', '=', 'cancel'),
                 ('order_line.x_is_a_room_offer', '=', True),
-                ('rental_start_date', '<', fields.Datetime.to_datetime(period_stop)),
-                ('rental_return_date', '>=', fields.Datetime.to_datetime(period_start)),
+                ('rental_start_date', '<', p_stop),
+                ('rental_return_date', '>=', p_start),
             ])
 
         return {
@@ -184,6 +198,7 @@ class PlanningSlot(models.Model):
             'total_rooms': total_rooms,
             'arrivals': arrivals,
             'departures': departures,
+            'upcoming_departures': upcoming_departures,
             'paid': paid_rooms,
             'cancelled': cancelled,
         }
