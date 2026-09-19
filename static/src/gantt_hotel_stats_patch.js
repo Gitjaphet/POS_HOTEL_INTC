@@ -33,8 +33,12 @@ patch(GanttRendererControls.prototype, {
                 "get_hotel_planning_stats",
                 [],
                 {
-                    period_start: startDate ? startDate.toSQL() : null,
-                    period_stop: stopDate ? stopDate.toSQL() : null,
+                    // Odoo attend "YYYY-MM-DD HH:mm:ss" strict et stocke en
+                    // UTC : .toSQL() ajoute millisecondes et décalage (refusés
+                    // par to_datetime), et sans .toUTC() les bornes locales
+                    // (+03:00) décaleraient le comptage aux limites du mois.
+                    period_start: startDate ? startDate.toUTC().toFormat("yyyy-MM-dd HH:mm:ss") : null,
+                    period_stop: stopDate ? stopDate.toUTC().toFormat("yyyy-MM-dd HH:mm:ss") : null,
                 }
             );
         } catch (e) {
