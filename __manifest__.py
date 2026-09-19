@@ -34,10 +34,16 @@
             "POS_HOTEL_INTC/static/src/app/screens/payment_screen/room_charge_popup/room_charge_popup.xml",
         ],
         "web.assets_backend": [
+            "POS_HOTEL_INTC/static/src/scss/room_removed_line.scss",
+        ],
+        # Les vues Gantt sont chargées à la demande : leurs composants et
+        # templates vivent dans le bundle "lazy", jamais dans assets_backend.
+        # Tout patch qui hérite d'un template web_gantt doit donc être déclaré
+        # ici, sinon le template parent est introuvable à la compilation.
+        "web.assets_backend_lazy": [
             "POS_HOTEL_INTC/static/src/gantt_row_height_patch.js",
             "POS_HOTEL_INTC/static/src/gantt_hotel_stats_patch.js",
             "POS_HOTEL_INTC/static/src/gantt_hotel_stats.xml",
-            "POS_HOTEL_INTC/static/src/scss/room_removed_line.scss",
         ],
     },
     "post_init_hook": "post_init_hook",
