@@ -9,16 +9,21 @@
 // partie. Toute modification ici doit suivre ce mapping, sinon la lecture
 // visuelle du planning et celle du tableau de bord divergent.
 .o_hotel_stats {
+    // Occupe toute la largeur : le conteneur parent (barre de contrôle Gantt)
+    // est en flex-wrap, donc le bloc bascule seul sur la ligne du dessous
+    // plutôt que de comprimer les boutons de navigation.
+    flex: 0 0 100%;
     display: flex;
     flex-wrap: wrap;
     align-items: flex-start;
-    gap: 1.25rem;
-    margin-left: 1rem;
+    gap: 1.5rem;
+    margin: .25rem 0;
+    padding-top: .25rem;
 
     .o_hotel_stats_group {
         display: flex;
         flex-direction: column;
-        gap: 2px;
+        gap: 3px;
     }
 
     .o_hotel_stats_scope {
@@ -64,13 +69,14 @@
         white-space: nowrap;
     }
 
-    // Couleurs alignées sur les pastilles du Gantt
-    .o_hotel_tile_occupied { border-left-color: #5B899E; }
-    .o_hotel_tile_reserved { border-left-color: #4CAF50; }
-    .o_hotel_tile_free     { border-left-color: #9E9E9E; }
-    .o_hotel_tile_soon     { border-left-color: #FF9800; }
-    .o_hotel_tile_paid     { border-left-color: #2E7D32; }
-    .o_hotel_tile_arrivals { border-left-color: #1976D2; }
-    .o_hotel_tile_departures { border-left-color: #9C27B0; }
-    .o_hotel_tile_cancelled  { border-left-color: #B0BEC5; opacity: .75; }
+    // Couleurs alignées sur les pastilles du Gantt : le chiffre est coloré en
+    // plus du liseré, sinon le repère est trop discret dans une barre d'outils.
+    .o_hotel_tile_occupied   { border-left-color: #5B899E; .o_hotel_tile_value { color: #5B899E; } }
+    .o_hotel_tile_reserved   { border-left-color: #4CAF50; .o_hotel_tile_value { color: #3d8b40; } }
+    .o_hotel_tile_free       { border-left-color: #78909C; }
+    .o_hotel_tile_soon       { border-left-color: #FF9800; .o_hotel_tile_value { color: #E65100; } }
+    .o_hotel_tile_paid       { border-left-color: #2E7D32; .o_hotel_tile_value { color: #2E7D32; } }
+    .o_hotel_tile_arrivals   { border-left-color: #1976D2; .o_hotel_tile_value { color: #1976D2; } }
+    .o_hotel_tile_departures { border-left-color: #9C27B0; .o_hotel_tile_value { color: #9C27B0; } }
+    .o_hotel_tile_cancelled  { border-left-color: #B0BEC5; opacity: .8; }
 }
