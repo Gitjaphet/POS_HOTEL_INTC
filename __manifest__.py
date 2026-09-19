@@ -35,6 +35,9 @@
         ],
         "web.assets_backend": [
             "POS_HOTEL_INTC/static/src/gantt_row_height_patch.js",
+            "POS_HOTEL_INTC/static/src/gantt_hotel_stats_patch.js",
+            "POS_HOTEL_INTC/static/src/gantt_hotel_stats.xml",
+            "POS_HOTEL_INTC/static/src/scss/room_removed_line.scss",
         ],
     },
     "post_init_hook": "post_init_hook",

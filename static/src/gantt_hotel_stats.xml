@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="POS_HOTEL_INTC.HotelStats">
+        <div t-if="hotelStats.data" class="o_hotel_stats d-flex flex-wrap align-items-center gap-3 ms-3 small">
+            <span class="text-muted fw-bold" t-esc="hotelStats.data.reference_date"/>
+
+            <span class="d-flex align-items-center gap-1" title="Chambres occupées (client présent)">
+                <span class="o_hotel_dot" style="background-color:#5B899E"/>
+                Occupées : <b t-esc="hotelStats.data.occupied"/>
+            </span>
+            <span class="d-flex align-items-center gap-1" title="Réservations confirmées, client pas encore arrivé">
+                <span class="o_hotel_dot" style="background-color:#4CAF50"/>
+                Réservées : <b t-esc="hotelStats.data.reserved"/>
+            </span>
+            <span class="d-flex align-items-center gap-1" title="Séjours terminés">
+                <span class="o_hotel_dot" style="background-color:#9C27B0"/>
+                Partis : <b t-esc="hotelStats.data.departed"/>
+            </span>
+
+            <span class="vr"/>
+
+            <span title="Chambres libres aujourd'hui">
+                Libres : <b t-esc="hotelStats.data.free"/> / <t t-esc="hotelStats.data.total_rooms"/>
+            </span>
+            <span title="Arrivées prévues aujourd'hui">
+                Arrivées : <b t-esc="hotelStats.data.arrivals"/>
+            </span>
+            <span title="Départs prévus aujourd'hui">
+                Départs : <b t-esc="hotelStats.data.departures"/>
+            </span>
+            <span title="Chambres ayant reçu un paiement (acompte ou solde)">
+                💰 Payées : <b t-esc="hotelStats.data.paid"/>
+            </span>
+
+            <span class="vr"/>
+
+            <span class="text-muted" title="Réservations annulées sur la période affichée">
+                Annulées : <b t-esc="hotelStats.data.cancelled"/>
+            </span>
+        </div>
+    </t>
+
+    <t t-inherit="web_gantt.GanttRendererControls" t-inherit-mode="extension">
+        <xpath expr="//t[@t-slot='multi_selection_buttons']" position="before">
+            <t t-call="POS_HOTEL_INTC.HotelStats"/>
+        </xpath>
+    </t>
+
+</templates>

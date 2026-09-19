@@ -7,6 +7,10 @@
             <xpath expr="//gantt" position="attributes">
                 <attribute name="color">color</attribute>
             </xpath>
+
+            <xpath expr="//gantt" position="inside">
+                <field name="x_stay_status"/>
+            </xpath>
         </field>
     </record>
 </odoo>
