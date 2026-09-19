@@ -99,7 +99,7 @@ class PlanningSlot(models.Model):
                 slot.display_name = f"\U0001F4B0 {slot.display_name}"
 
     @api.model
-    def get_hotel_planning_stats(self, period_start=None, period_stop=None):
+    def get_hotel_planning_stats(self, period_start=None, period_stop=None, reference_date=None):
         """Compteurs du tableau de bord affiché au-dessus du planning hôtel.
 
         Tous les compteurs de chambres sont calculés à la date du JOUR
@@ -112,8 +112,14 @@ class PlanningSlot(models.Model):
         :param period_stop: fin de la période affichée
         :return: dict de compteurs, consommé par le composant JS des contrôles
         """
-        tz = pytz.timezone(self.env.user.tz or 'UTC')
+        
+        # reference_date permet de projeter les compteurs sur une autre date
+        # (test, ou future sélection de date dans le planning) ; par défaut
+        # c'est le jour courant dans le fuseau de l'utilisateur.
         now_local = fields.Datetime.context_timestamp(self, fields.Datetime.now())
+        if reference_date:
+            ref = fields.Date.to_date(reference_date)
+            now_local = now_local.replace(year=ref.year, month=ref.month, day=ref.day)
         day_start_local = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
         day_stop_local = day_start_local + timedelta(days=1)
         # Repasse en UTC naïf : c'est le format de stockage des datetimes Odoo.
