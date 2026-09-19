@@ -6,11 +6,9 @@ import { onWillStart, onWillUpdateProps, useState } from "@odoo/owl";
 patch(GanttRendererControls.prototype, {
     setup() {
         super.setup();
+        console.log("[HOTEL] setup patché exécuté");
         this.orm = useService("orm");
         this.hotelStats = useState({ data: null });
-        // Jeton de séquence : seule la réponse de la dernière requête lancée
-        // est affichée, sinon une navigation rapide entre deux mois peut
-        // faire gagner une réponse obsolète arrivée en retard.
         this._hotelStatsSeq = 0;
         if (this.isHotelPlanning) {
             onWillStart(() => this.loadHotelStats());
@@ -18,18 +16,14 @@ patch(GanttRendererControls.prototype, {
         }
     },
 
-    /**
-     * Vrai uniquement sur le planning hôtel : notre vue héritée y déclare
-     * x_stay_status, qu'aucune autre vue Gantt de la base ne porte. Évite
-     * d'afficher des compteurs de chambres sur un planning RH, qui partage
-     * pourtant le même modèle planning.slot.
-     */
     get isHotelPlanning() {
         const fields = this.model.metaData.decorationFields || [];
+        console.log("[HOTEL] decorationFields =", fields);
         return fields.includes("x_stay_status");
     },
 
     async loadHotelStats() {
+        console.log("[HOTEL] loadHotelStats appelé");
         const seq = ++this._hotelStatsSeq;
         const { startDate, stopDate } = this.model.metaData;
         let stats;
@@ -43,11 +37,11 @@ patch(GanttRendererControls.prototype, {
                     period_stop: stopDate ? stopDate.toSQL() : null,
                 }
             );
-        } catch {
-            // Un tableau de bord indisponible ne doit jamais empêcher le
-            // planning lui-même de s'afficher : on abandonne silencieusement.
+        } catch (e) {
+            console.error("[HOTEL] échec RPC", e);
             return;
         }
+        console.log("[HOTEL] stats reçues", stats);
         if (seq === this._hotelStatsSeq) {
             this.hotelStats.data = stats;
         }
