@@ -44,6 +44,7 @@
             "POS_HOTEL_INTC/static/src/gantt_row_height_patch.js",
             "POS_HOTEL_INTC/static/src/gantt_hotel_stats_patch.js",
             "POS_HOTEL_INTC/static/src/gantt_hotel_stats.xml",
+            "POS_HOTEL_INTC/static/src/scss/gantt_hotel_stats.scss",
         ],
     },
     "post_init_hook": "post_init_hook",
