@@ -58,8 +58,8 @@
         </div>
     </t>
 
-    <t t-inherit="web_gantt.GanttRendererControls" t-inherit-mode="extension">
-        <xpath expr="//t[@t-slot='multi_selection_buttons']" position="before">
+    <t t-inherit="planning.PlanningGanttRenderer" t-inherit-mode="extension">
+        <xpath expr="//GanttRendererControls" position="after">
             <t t-call="POS_HOTEL_INTC.HotelStats"/>
         </xpath>
     </t>

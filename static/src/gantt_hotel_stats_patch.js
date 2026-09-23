@@ -1,9 +1,9 @@
 import { patch } from "@web/core/utils/patch";
-import { GanttRendererControls } from "@web_gantt/gantt_renderer_controls";
+import { PlanningGanttRenderer } from "@planning/views/planning_gantt/planning_gantt_renderer";
 import { useService } from "@web/core/utils/hooks";
 import { onWillStart, onWillUpdateProps, useState } from "@odoo/owl";
 
-patch(GanttRendererControls.prototype, {
+patch(PlanningGanttRenderer.prototype, {
     setup() {
         super.setup();
         console.log("[HOTEL] setup patché exécuté");
