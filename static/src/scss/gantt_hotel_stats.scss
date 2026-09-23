@@ -39,7 +39,7 @@
         flex-wrap: wrap;
         justify-content: center;
         align-items: flex-start;
-        gap: 1.5rem;
+        gap: 2rem;
         min-width: 0;
     }
 
@@ -50,7 +50,8 @@
     }
 
     .o_hotel_stats_scope {
-        font-size: 10px;
+        font-size: 12px;
+        font-weight: 700;
         text-transform: uppercase;
         letter-spacing: .04em;
         opacity: .55;
@@ -60,34 +61,35 @@
     .o_hotel_tiles {
         display: flex;
         flex-wrap: wrap;
-        gap: .375rem;
+        gap: .5rem;
     }
 
     .o_hotel_tile {
         display: flex;
         flex-direction: column;
         justify-content: center;
-        min-width: 72px;
-        padding: 4px 10px;
+        min-width: 100px;
+        padding: 8px 14px;
         border-radius: 6px;
-        border-left: 3px solid transparent;
+        border-left: 4px solid transparent;
         background-color: rgba(128, 128, 128, .08);
         line-height: 1.15;
     }
 
     .o_hotel_tile_value {
-        font-size: 18px;
-        font-weight: 600;
+        font-size: 26px;
+        font-weight: 700;
 
         small {
-            font-size: 11px;
-            font-weight: 400;
+            font-size: 14px;
+            font-weight: 600;
             opacity: .6;
         }
     }
 
     .o_hotel_tile_label {
-        font-size: 11px;
+        font-size: 13px;
+        font-weight: 700;
         opacity: .7;
         white-space: nowrap;
     }
