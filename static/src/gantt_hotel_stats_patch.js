@@ -1,18 +1,34 @@
 import { patch } from "@web/core/utils/patch";
 import { PlanningGanttRenderer } from "@planning/views/planning_gantt/planning_gantt_renderer";
 import { useService } from "@web/core/utils/hooks";
-import { onWillStart, onWillUpdateProps, useState } from "@odoo/owl";
+import { onWillStart, onWillUpdateProps, useState, useRef, useEffect } from "@odoo/owl";
 
 patch(PlanningGanttRenderer.prototype, {
     setup() {
         super.setup();
         console.log("[HOTEL] setup patché exécuté");
         this.orm = useService("orm");
-        this.hotelStats = useState({ data: null });
+        this.hotelStats = useState({ data: null, height: 0 });
         this._hotelStatsSeq = 0;
         if (this.isHotelPlanning) {
             onWillStart(() => this.loadHotelStats());
             onWillUpdateProps(() => this.loadHotelStats());
+                        // Hauteur réelle du bloc (varie : retour à la ligne, mobile) →
+            // relue par getGridStyle() pour décaler les en-têtes sticky.
+            this.hotelStatsRef = useRef("hotelStats");
+            useEffect(
+                (el) => {
+                    if (!el) {
+                        return;
+                    }
+                    const observer = new ResizeObserver(() => {
+                        this.hotelStats.height = el.offsetHeight;
+                    });
+                    observer.observe(el);
+                    return () => observer.disconnect();
+                },
+                () => [this.hotelStatsRef.el]
+            );
         }
     },
 
@@ -20,6 +36,12 @@ patch(PlanningGanttRenderer.prototype, {
         const fields = this.model.metaData.decorationFields || [];
         console.log("[HOTEL] decorationFields =", fields);
         return fields.includes("x_stay_status");
+    },
+
+    getGridStyle() {
+        const style = super.getGridStyle();
+        const height = this.hotelStats?.height;
+        return height ? `${style};--Hotel__Stats-height:${height}px` : style;
     },
 
     async loadHotelStats() {

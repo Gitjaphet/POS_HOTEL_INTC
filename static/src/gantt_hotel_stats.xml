@@ -9,7 +9,7 @@
     </t>
 
     <t t-name="POS_HOTEL_INTC.HotelStats">
-        <div t-if="hotelStats.data" class="o_hotel_stats">
+        <div t-if="hotelStats.data" t-ref="hotelStats" class="o_hotel_stats">
             <div class="o_hotel_stats_group">
                 <span class="o_hotel_stats_scope">Aujourd'hui</span>
                 <div class="o_hotel_tiles">
