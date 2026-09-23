@@ -3,22 +3,26 @@
 }
 
 
-// Tableau de bord hôtel affiché dans la barre de contrôle du planning Gantt.
-// Les couleurs de statut reprennent exactement celles des pastilles du Gantt
+// Tableau de bord hôtel, inséré entre la barre de contrôle et la grille du
+// planning Gantt (planning.PlanningGanttRenderer). Les couleurs de statut
+// reprennent exactement celles des pastilles du Gantt
 // (planning_slot._compute_color) : bleu = occupée, vert = réservée, violet =
 // partie. Toute modification ici doit suivre ce mapping, sinon la lecture
 // visuelle du planning et celle du tableau de bord divergent.
 .o_hotel_stats {
-    // Occupe toute la largeur : le conteneur parent (barre de contrôle Gantt)
-    // est en flex-wrap, donc le bloc bascule seul sur la ligne du dessous
-    // plutôt que de comprimer les boutons de navigation.
-    flex: 0 0 100%;
+    // Collé sous la barre de contrôle (sticky à top: 0, hauteur fixe
+    // --Gantt__Buttons-height). Sa hauteur réelle est mesurée en JS et
+    // exposée en --Hotel__Stats-height pour décaler les en-têtes (fin du fichier).
+    position: sticky;
+    top: var(--Gantt__Buttons-height);
+    left: 0;
+    @include o-gantt-zindex(title);
+    background-color: $o-gray-100;
     display: flex;
     flex-wrap: wrap;
     align-items: flex-start;
     gap: 1.5rem;
-    margin: .25rem 0;
-    padding-top: .25rem;
+    padding: .5rem 1rem;
 
     .o_hotel_stats_group {
         display: flex;
@@ -79,4 +83,17 @@
     .o_hotel_tile_arrivals   { border-left-color: #1976D2; .o_hotel_tile_value { color: #1976D2; } }
     .o_hotel_tile_departures { border-left-color: #9C27B0; .o_hotel_tile_value { color: #9C27B0; } }
     .o_hotel_tile_cancelled  { border-left-color: #B0BEC5; opacity: .8; }
+}
+
+// Les en-têtes sticky du Gantt se calent sur la barre de contrôle seule
+// (top: --Gantt__Buttons-height). On ajoute la hauteur du bloc de stats.
+// Hors vue hôtel la variable n'existe pas : repli à 0px = valeur d'origine.
+// Le .o_gantt_renderer intermédiaire donne une spécificité supérieure à la
+// règle web_gantt, indépendamment de l'ordre de chargement des bundles.
+.o_gantt_view .o_gantt_renderer {
+    .o_gantt_title,
+    .o_gantt_header_groups,
+    .o_gantt_header_columns {
+        top: calc(var(--Gantt__Buttons-height) + var(--Hotel__Stats-height, 0px));
+    }
 }
