@@ -84,10 +84,12 @@ class PlanningSlot(models.Model):
                 )
 
 
-    @api.depends('x_stay_status')
+    @api.depends('x_stay_status', 'sale_line_id')
     def _compute_color(self):
         for slot in self:
-            if slot.x_stay_status == 'checked_in':
+            if not slot.sale_line_id:
+                slot.color = 0  # gris : devis, aucune commande liée
+            elif slot.x_stay_status == 'checked_in':
                 slot.color = 4  # bleu
             elif slot.x_stay_status == 'checked_out':
                 slot.color = 5  # violet
@@ -129,7 +131,9 @@ class PlanningSlot(models.Model):
         day_start = day_start_local.astimezone(pytz.UTC).replace(tzinfo=None)
         day_stop = day_stop_local.astimezone(pytz.UTC).replace(tzinfo=None)
 
-        room_domain = [('role_id.x_is_a_room_offer', '=', True)]
+        # Les devis (séjours sans commande liée, pastilles grises) sont exclus
+        # de tous les compteurs : seules les vraies réservations comptent.
+        room_domain = [('role_id.x_is_a_room_offer', '=', True), ('sale_line_id', '!=', False)]
 
         # Une seule lecture des séjours couvrant aujourd'hui : le volume est
         # borné par le nombre de chambres, donc le coût ne grandit pas avec
