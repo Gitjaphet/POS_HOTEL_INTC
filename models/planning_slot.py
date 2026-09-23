@@ -22,6 +22,16 @@ class PlanningSlot(models.Model):
              "des quantités globales natives (qty_delivered/qty_returned) "
              "qui ne distinguent pas quelle ressource a été traitée.",
     )
+    # État de paiement du folio, exposé à la vue Gantt pour l'icône des
+    # pastilles (fa-money si partiel, badge vert si payé). Non stocké : dépend
+    # de factures, acomptes, extras et paiements POS, trop de sources pour des
+    # @api.depends fiables. La règle vit dans sale.order._get_folio_payment_state().
+    x_payment_state = fields.Selection(
+        [('none', "Non payé"), ('partial', "Acompte / partiel"), ('paid', "Payé")],
+        string="État de paiement",
+        compute='_compute_x_payment_state',
+    )
+
     x_checked_in_at = fields.Datetime(
         string="Enregistré le",
         help="Horodatage informatif de l'enregistrement (check-in) de cette "
@@ -84,19 +94,12 @@ class PlanningSlot(models.Model):
             else:
                 slot.color = 10  # vert (pending, confirmé pas encore check-in)
 
-    def _compute_display_name(self):
-        super()._compute_display_name()
+    def _compute_x_payment_state(self):
+        # Règle centralisée sur le folio (sale.order) pour rester identique
+        # aux compteurs du tableau de bord du planning.
         for slot in self:
             order = slot.sale_line_id.order_id
-            if not order:
-                continue
-            # Règle 💰/✅ centralisée sur le folio (sale.order) pour rester
-            # identique aux compteurs du tableau de bord du planning.
-            payment_state = order._get_folio_payment_state()
-            if payment_state == 'paid':
-                slot.display_name = f"\u2705 {slot.display_name}"
-            elif payment_state == 'partial':
-                slot.display_name = f"\U0001F4B0 {slot.display_name}"
+            slot.x_payment_state = order._get_folio_payment_state() if order else 'none'
 
     @api.model
     def get_hotel_planning_stats(self, period_start=None, period_stop=None, reference_date=None):

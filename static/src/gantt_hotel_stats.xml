@@ -69,4 +69,18 @@
         </xpath>
     </t>
 
+    <!-- Icône de paiement devant le titre de chaque pastille. La règle vient de
+         sale.order._get_folio_payment_state() via planning.slot.x_payment_state.
+         Hors planning hôtel, le champ n'est pas chargé : rien ne s'affiche. -->
+    <t t-inherit="planning.PlanningGanttRenderer.Pill" t-inherit-mode="extension">
+        <xpath expr="//span[hasclass('o_gantt_pill_title')]" position="before">
+            <span t-if="pill.record.x_payment_state === 'partial'"
+                  class="o_hotel_pill_pay o_hotel_pill_pay_partial fa fa-money ms-1"
+                  title="Acompte / paiement partiel"/>
+            <span t-elif="pill.record.x_payment_state === 'paid'"
+                  class="o_hotel_pill_pay o_hotel_pill_pay_paid badge rounded-pill text-bg-success ms-1"
+                  title="Totalement payé"><i class="fa fa-check"/></span>
+        </xpath>
+    </t>
+
 </templates>

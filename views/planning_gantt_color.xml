@@ -10,6 +10,7 @@
 
             <xpath expr="//gantt" position="inside">
                 <field name="x_stay_status"/>
+                <field name="x_payment_state"/>
             </xpath>
         </field>
     </record>

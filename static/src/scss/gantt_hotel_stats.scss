@@ -118,3 +118,22 @@
         top: calc(var(--Gantt__Buttons-height) + var(--Hotel__Stats-height, 0px));
     }
 }
+
+// Icônes de paiement sur les pastilles du Gantt (voir gantt_hotel_stats.xml).
+// flex-shrink: 0 : sur une pastille étroite, c'est le titre qui se tronque,
+// jamais l'icône.
+.o_gantt_pill {
+    .o_hotel_pill_pay {
+        flex-shrink: 0;
+    }
+
+    .o_hotel_pill_pay_partial {
+        font-size: 1.1em;
+        color: rgba(0, 0, 0, .7);
+    }
+
+    .o_hotel_pill_pay_paid {
+        font-size: .7em;
+        padding: .3em .4em;
+    }
+}
