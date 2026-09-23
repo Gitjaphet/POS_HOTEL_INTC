@@ -35,10 +35,6 @@
                         <span class="o_hotel_tile_value" t-esc="hotelStats.data.upcoming_departures"/>
                         <span class="o_hotel_tile_label">Départs à venir</span>
                     </div>
-                    <div class="o_hotel_tile o_hotel_tile_paid">
-                        <span class="o_hotel_tile_value" t-esc="hotelStats.data.paid"/>
-                        <span class="o_hotel_tile_label">Payées</span>
-                    </div>
                 </div>
             </div>
 
@@ -52,6 +48,10 @@
                     <div class="o_hotel_tile o_hotel_tile_departures">
                         <span class="o_hotel_tile_value" t-esc="hotelStats.data.departures"/>
                         <span class="o_hotel_tile_label">Départs</span>
+                    </div>
+                    <div class="o_hotel_tile o_hotel_tile_paid">
+                        <span class="o_hotel_tile_value" t-esc="hotelStats.data.paid"/>
+                        <span class="o_hotel_tile_label">Payées</span>
                     </div>
                     <div class="o_hotel_tile o_hotel_tile_cancelled">
                         <span class="o_hotel_tile_value" t-esc="hotelStats.data.cancelled"/>

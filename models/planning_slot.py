@@ -105,15 +105,15 @@ class PlanningSlot(models.Model):
     def get_hotel_planning_stats(self, period_start=None, period_stop=None, reference_date=None):
         """Compteurs du tableau de bord affiché au-dessus du planning hôtel.
 
-        Tous les compteurs de chambres sont calculés à la date du JOUR
-        (fuseau de l'utilisateur), pas sur la période affichée : un
-        réceptionniste veut savoir l'état de l'hôtel maintenant, pas une
-        moyenne du mois. Seul 'cancelled' porte sur la période affichée,
-        une annulation étant un événement et non un état.
+        États du JOUR (fuseau de l'utilisateur) : occupées, réservées, libres,
+        départs à venir. Un réceptionniste veut l'état de l'hôtel maintenant,
+        quelle que soit la période affichée.
+        Événements de la PÉRIODE affichée : arrivées, départs, payées,
+        annulées. Ce sont des faits datés, comptés sur ce que l'utilisateur regarde.
 
         :param period_start: début de la période affichée (str ou datetime)
         :param period_stop: fin de la période affichée
-        :return: dict de compteurs, consommé par le composant JS des contrôles
+        :return: dict de compteurs, consommé par le patch JS de PlanningGanttRenderer
         """
         
         # reference_date permet de projeter les compteurs sur une autre date
@@ -149,12 +149,6 @@ class PlanningSlot(models.Model):
         Resource = self.env['resource.resource']
         total_rooms = Resource.search_count(Resource._get_room_resource_domain())
 
-        # Règle 💰/✅ empruntée au folio pour rester alignée sur les pastilles.
-        paid_rooms = sum(
-            1 for slot in busy_slots
-            if slot.sale_line_id.order_id
-            and slot.sale_line_id.order_id._get_folio_payment_state() != 'none'
-        )
 
         # Départs à venir : séjours encore en cours se terminant dans les
         # 2 prochains jours. Toujours relatif à aujourd'hui, jamais à la
@@ -169,7 +163,7 @@ class PlanningSlot(models.Model):
         # Événements de la période affichée, par opposition aux états du jour
         # ci-dessus : une arrivée, un départ ou une annulation est un fait
         # daté, qu'on compte donc sur ce que l'utilisateur regarde.
-        arrivals = departures = cancelled = 0
+        arrivals = departures = cancelled = paid = 0
         if period_start and period_stop:
             p_start = fields.Datetime.to_datetime(period_start)
             p_stop = fields.Datetime.to_datetime(period_stop)
@@ -192,6 +186,14 @@ class PlanningSlot(models.Model):
                 ('rental_return_date', '>=', p_start),
             ])
 
+            # Payées : séjours touchant la période qui portent un badge de
+            # paiement (acompte/partiel ou soldé), soit exactement les
+            # pastilles à badge jaune ou vert visibles sur le Gantt.
+            paid = len(self.search(room_domain + [
+                ('start_datetime', '<', p_stop),
+                ('end_datetime', '>=', p_start),
+            ]).filtered(lambda s: s.x_payment_state != 'none'))
+
         return {
             'reference_date': fields.Date.to_string(day_start_local.date()),
             'occupied': len(occupied),
@@ -202,6 +204,6 @@ class PlanningSlot(models.Model):
             'arrivals': arrivals,
             'departures': departures,
             'upcoming_departures': upcoming_departures,
-            'paid': paid_rooms,
+            'paid': paid,
             'cancelled': cancelled,
         }
