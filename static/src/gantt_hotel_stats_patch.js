@@ -1,6 +1,7 @@
 import { patch } from "@web/core/utils/patch";
 import { PlanningGanttRenderer } from "@planning/views/planning_gantt/planning_gantt_renderer";
 import { useService } from "@web/core/utils/hooks";
+import { user } from "@web/core/user";
 import { onWillStart, onWillUpdateProps, useState, useRef, useEffect } from "@odoo/owl";
 
 patch(PlanningGanttRenderer.prototype, {
@@ -42,6 +43,19 @@ patch(PlanningGanttRenderer.prototype, {
         const style = super.getGridStyle();
         const height = this.hotelStats?.height;
         return height ? `${style};--Hotel__Stats-height:${height}px` : style;
+    },
+
+    // Le bloc est frère de la grille, pas enfant : il n'hérite pas de
+    // --Gantt__RowHeader-width. On la lui repasse pour aligner la colonne
+    // du logo sur celle des chambres.
+    get hotelStatsStyle() {
+        return `--Gantt__RowHeader-width:${this.rowHeaderWidth}px`;
+    },
+
+    // Société principale active (sélecteur multi-société), pas la société
+    // par défaut de l'utilisateur.
+    get hotelCompanyLogoUrl() {
+        return `/web/image/res.company/${user.activeCompany.id}/logo`;
     },
 
     async loadHotelStats() {

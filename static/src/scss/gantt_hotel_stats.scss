@@ -13,12 +13,35 @@
     left: 0;
     @include o-gantt-zindex(title);
     background-color: $o-gray-100;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    gap: 1.5rem;
-    padding: .5rem 1rem;
-    justify-content: center;
+    // Deux colonnes : logo aligné sur la colonne des chambres, tuiles centrées
+    // au-dessus de la timeline. Pas de padding horizontal, sinon la 1re colonne
+    // se décale par rapport aux en-têtes de ligne en dessous.
+    display: grid;
+    grid-template-columns: var(--Gantt__RowHeader-width, 0px) 1fr;
+    align-items: center;
+    padding: .5rem 0;
+
+    .o_hotel_stats_logo {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-width: 0;
+
+        img {
+            max-width: 80%;
+            max-height: 48px;
+            object-fit: contain;
+        }
+    }
+
+    .o_hotel_stats_tiles {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: flex-start;
+        gap: 1.5rem;
+        min-width: 0;
+    }
 
     .o_hotel_stats_group {
         display: flex;
