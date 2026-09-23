@@ -21,10 +21,6 @@
                         <span class="o_hotel_tile_value" t-esc="hotelStats.data.occupied"/>
                         <span class="o_hotel_tile_label">Occupées</span>
                     </div>
-                    <div class="o_hotel_tile o_hotel_tile_reserved">
-                        <span class="o_hotel_tile_value" t-esc="hotelStats.data.reserved"/>
-                        <span class="o_hotel_tile_label">Réservées</span>
-                    </div>
                     <div class="o_hotel_tile o_hotel_tile_free">
                         <span class="o_hotel_tile_value">
                             <t t-esc="hotelStats.data.free"/><small t-esc="'/' + hotelStats.data.total_rooms"/>
@@ -41,6 +37,10 @@
             <div class="o_hotel_stats_group">
                 <span class="o_hotel_stats_scope">Période affichée</span>
                 <div class="o_hotel_tiles">
+                    <div class="o_hotel_tile o_hotel_tile_reserved">
+                        <span class="o_hotel_tile_value" t-esc="hotelStats.data.confirmed"/>
+                        <span class="o_hotel_tile_label">Confirmées</span>
+                    </div>
                     <div class="o_hotel_tile o_hotel_tile_arrivals">
                         <span class="o_hotel_tile_value" t-esc="hotelStats.data.arrivals"/>
                         <span class="o_hotel_tile_label">Arrivées</span>

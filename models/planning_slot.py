@@ -163,7 +163,7 @@ class PlanningSlot(models.Model):
         # Événements de la période affichée, par opposition aux états du jour
         # ci-dessus : une arrivée, un départ ou une annulation est un fait
         # daté, qu'on compte donc sur ce que l'utilisateur regarde.
-        arrivals = departures = cancelled = paid = 0
+        arrivals = departures = cancelled = paid = confirmed = 0
         if period_start and period_stop:
             p_start = fields.Datetime.to_datetime(period_start)
             p_stop = fields.Datetime.to_datetime(period_stop)
@@ -189,10 +189,14 @@ class PlanningSlot(models.Model):
             # Payées : séjours touchant la période qui portent un badge de
             # paiement (acompte/partiel ou soldé), soit exactement les
             # pastilles à badge jaune ou vert visibles sur le Gantt.
-            paid = len(self.search(room_domain + [
+            period_slots = self.search(room_domain + [
                 ('start_datetime', '<', p_stop),
                 ('end_datetime', '>=', p_start),
-            ]).filtered(lambda s: s.x_payment_state != 'none'))
+            ])
+            # Confirmées : réservations pas encore arrivées (pastilles vertes),
+            # comptées par folio comme sur Booking (3 chambres = 1).
+            confirmed = len(period_slots.filtered(lambda s: s.x_stay_status == 'pending').sale_line_id.order_id)
+            paid = len(period_slots.filtered(lambda s: s.x_payment_state != 'none'))
 
         return {
             'reference_date': fields.Date.to_string(day_start_local.date()),
@@ -205,5 +209,6 @@ class PlanningSlot(models.Model):
             'departures': departures,
             'upcoming_departures': upcoming_departures,
             'paid': paid,
+            'confirmed': confirmed,
             'cancelled': cancelled,
         }
