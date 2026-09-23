@@ -120,20 +120,12 @@
 }
 
 // Icônes de paiement sur les pastilles du Gantt (voir gantt_hotel_stats.xml).
-// flex-shrink: 0 : sur une pastille étroite, c'est le titre qui se tronque,
-// jamais l'icône.
-.o_gantt_pill {
-    .o_hotel_pill_pay {
-        flex-shrink: 0;
-    }
-
-    .o_hotel_pill_pay_partial {
-        font-size: 1.1em;
-        color: rgba(0, 0, 0, .7);
-    }
-
-    .o_hotel_pill_pay_paid {
-        font-size: .7em;
-        padding: .3em .4em;
-    }
+// Badges pleins (jaune = acompte/partiel, vert = payé) cerclés de blanc pour
+// ressortir sur les trois couleurs de pastille (vert, bleu, violet).
+// flex-shrink: 0 : sur une pastille étroite, le titre se tronque, jamais le badge.
+.o_gantt_pill .o_hotel_pill_pay {
+    flex-shrink: 0;
+    font-size: .85em;
+    padding: .35em .5em;
+    box-shadow: 0 0 0 2px #fff;
 }

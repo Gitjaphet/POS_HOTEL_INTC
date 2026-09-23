@@ -75,8 +75,8 @@
     <t t-inherit="planning.PlanningGanttRenderer.Pill" t-inherit-mode="extension">
         <xpath expr="//span[hasclass('o_gantt_pill_title')]" position="before">
             <span t-if="pill.record.x_payment_state === 'partial'"
-                  class="o_hotel_pill_pay o_hotel_pill_pay_partial fa fa-money ms-1"
-                  title="Acompte / paiement partiel"/>
+                  class="o_hotel_pill_pay o_hotel_pill_pay_partial badge rounded-pill text-bg-warning ms-1"
+                  title="Acompte / paiement partiel"><i class="fa fa-money"/></span>
             <span t-elif="pill.record.x_payment_state === 'paid'"
                   class="o_hotel_pill_pay o_hotel_pill_pay_paid badge rounded-pill text-bg-success ms-1"
                   title="Totalement payé"><i class="fa fa-check"/></span>
