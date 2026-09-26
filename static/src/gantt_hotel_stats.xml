@@ -83,4 +83,13 @@
         </xpath>
     </t>
 
+    <!-- Planning hôtel : pas d'outil ciseaux. Sans l'élément
+         .o_gantt_pill_split_tool, onPillClicked ne déclenche plus la découpe
+         d'un séjour : un clic sur une pastille ouvre toujours sa fiche. -->
+    <t t-inherit="planning.PlanningGanttRenderer" t-inherit-mode="extension">
+        <xpath expr="//PlanningSplitTool" position="attributes">
+            <attribute name="t-if">!isHotelPlanning</attribute>
+        </xpath>
+    </t>
+
 </templates>
