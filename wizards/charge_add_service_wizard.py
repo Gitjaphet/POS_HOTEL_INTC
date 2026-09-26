@@ -102,4 +102,13 @@ class PosHotelChargeAddServiceWizardLine(models.TransientModel):
     @api.onchange("product_id")
     def _onchange_product_id(self):
         if self.product_id:
-            self.unit_price = self.product_id.lst_price
+            # Prix produit en devise société (MGA) → devise de la réservation
+            # (liste de prix), au taux configuré en comptabilité, date du jour.
+            order = self.wizard_id.sale_order_id
+            company = order.company_id or self.env.company
+            self.unit_price = company.currency_id._convert(
+                self.product_id.lst_price,
+                self.currency_id or company.currency_id,
+                company,
+                fields.Date.context_today(self),
+            )
