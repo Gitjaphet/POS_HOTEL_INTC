@@ -103,6 +103,22 @@ class PlanningSlot(models.Model):
             order = slot.sale_line_id.order_id
             slot.x_payment_state = order._get_folio_payment_state() if order else 'none'
 
+    @api.depends('role_id', 'sale_line_id')
+    def _compute_display_name(self):
+        super()._compute_display_name()
+        # Chambre vendue : le nom de la ligne de commande contient déjà le
+        # produit ("S00137 - Chambre Double (Petit déjeuner inclus)"), le rôle
+        # "Chambre Double" ferait doublon. Un devis (sans commande) garde son
+        # rôle, seule indication de la chambre sur sa pastille.
+        for slot in self:
+            role_name = slot.role_id.display_name
+            if not (slot.sale_line_id and role_name):
+                continue
+            parts = slot.display_name.split(' - ')
+            if role_name in parts:
+                parts.remove(role_name)
+                slot.display_name = ' - '.join(parts)
+
     @api.model
     def get_hotel_planning_stats(self, period_start=None, period_stop=None, reference_date=None):
         """Compteurs du tableau de bord affiché au-dessus du planning hôtel.
