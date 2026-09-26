@@ -85,6 +85,16 @@ class SaleOrder(models.Model):
              "confondus, pour le suivi check-in/check-out par chambre précise.",
     )
 
+    def _compute_pricelist_id(self):
+        super()._compute_pricelist_id()
+        # Réservation créée depuis le planning hôtel avec une liste de prix
+        # choisie : elle prime sur celle du client, sinon le choix du client
+        # la remplacerait (et le prix des lignes ne serait pas recalculé).
+        locked_id = self.env.context.get('hotel_locked_pricelist_id')
+        if locked_id:
+            for order in self.filtered(lambda o: o.state in ('draft', 'sent')):
+                order.pricelist_id = locked_id
+
     @api.depends(
         "order_line.planning_slot_ids.start_datetime",
         "order_line.planning_slot_ids.end_datetime",

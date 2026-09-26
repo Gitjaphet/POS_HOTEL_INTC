@@ -79,6 +79,7 @@ class PlanningSlot(models.Model):
             # calcule le prix de la chambre sans attendre le choix du client.
             if self.x_pricelist_id:
                 action.setdefault('context', {})['default_pricelist_id'] = self.x_pricelist_id.id
+                action['context']['hotel_locked_pricelist_id'] = self.x_pricelist_id.id
             # Permet au formulaire de commande de supprimer ce créneau si le
             # brouillon est abandonné (voir form_hotel_draft_patch.js).
             action.setdefault('context', {})['hotel_draft_slot_id'] = self.id
