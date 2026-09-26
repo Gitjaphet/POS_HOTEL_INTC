@@ -1,8 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <!-- Planning hôtel : marqueur de contexte lu par la fenêtre de création.
+         Reprend le contexte d'origine de booking_engine et ajoute hotel_planning.
+         Attention : une mise à jour de booking_engine seul réécrirait ce
+         contexte ; relancer alors -u POS_HOTEL_INTC. -->
+    <record id="booking_engine.booking_engine_rooms_schedule_action" model="ir.actions.act_window">
+        <field name="context">{'search_default_group_by_employee': 1, 'planning_expand_employee': 1, 'planning_expand_role': 1, 'planning_expand_sale_line_id': 1, 'planning_expand_resource': 1, 'hotel_planning': True}</field>
+    </record>
+
     <!-- Fenêtre de création/édition d'un séjour depuis le planning hôtel.
-         Tout est conditionné par role_sync_shift_rental (rôle synchronisé avec
-         la location = chambre) : l'app Planning standard n'est pas touchée. -->
+         Critère : ouverte depuis le planning hôtel (context hotel_planning), ou
+         rôle chambre (role_sync_shift_rental). L'app Planning standard n'est
+         pas touchée. Les conditions d'Odoo sont complétées (add/separator),
+         jamais écrasées. -->
     <record id="planning_view_form_in_gantt_hotel" model="ir.ui.view">
         <field name="name">planning.slot.form.gantt.hotel</field>
         <field name="model">planning.slot</field>
@@ -12,27 +22,42 @@
             <!-- Une chambre se vend par « Créer la réservation » : pas de choix
                  manuel d'une ligne de commande existante. -->
             <xpath expr="//label[@for='sale_line_id']" position="attributes">
-                <attribute name="invisible">role_sync_shift_rental</attribute>
+                <attribute name="invisible">context.get('hotel_planning') or role_sync_shift_rental</attribute>
             </xpath>
             <xpath expr="//div[field[@name='sale_line_id']]" position="attributes">
-                <attribute name="invisible">role_sync_shift_rental</attribute>
+                <attribute name="invisible">context.get('hotel_planning') or role_sync_shift_rental</attribute>
             </xpath>
             <!-- Enregistrer masqué à la création seulement : un séjour sans
                  commande deviendrait un devis orphelin (pastille grise). -->
             <xpath expr="(//footer/button[@special='save'])[1]" position="attributes">
-                <attribute name="invisible">confirm_delete or (role_sync_shift_rental and not id)</attribute>
+                <attribute name="invisible" add="(not id and (context.get('hotel_planning') or role_sync_shift_rental))" separator=" or "/>
             </xpath>
             <xpath expr="(//footer/button[@special='save'])[2]" position="attributes">
-                <attribute name="invisible">not confirm_delete or (role_sync_shift_rental and not id)</attribute>
+                <attribute name="invisible" add="(not id and (context.get('hotel_planning') or role_sync_shift_rental))" separator=" or "/>
             </xpath>
-            <xpath expr="//button[@name='action_create_order']" position="attributes">
-                <attribute name="string">Créer la réservation</attribute>
+            <!-- Publier & Envoyer / Envoyer / Planifier automatiquement :
+                 vocabulaire de planning d'employés, sans objet pour une chambre. -->
+            <xpath expr="(//footer/button[@name='action_send'])[1]" position="attributes">
+                <attribute name="invisible" add="(context.get('hotel_planning') or role_sync_shift_rental)" separator=" or "/>
+            </xpath>
+            <xpath expr="(//footer/button[@name='action_send'])[2]" position="attributes">
+                <attribute name="invisible" add="(context.get('hotel_planning') or role_sync_shift_rental)" separator=" or "/>
+            </xpath>
+            <xpath expr="//footer/button[@name='auto_plan_id']" position="attributes">
+                <attribute name="invisible" add="(context.get('hotel_planning') or role_sync_shift_rental)" separator=" or "/>
+            </xpath>
+            <xpath expr="//button[@name='action_save_template']" position="attributes">
+                <attribute name="invisible" add="(context.get('hotel_planning') or role_sync_shift_rental)" separator=" or "/>
             </xpath>
             <xpath expr="//button[@name='action_add_last_order']" position="attributes">
                 <attribute name="invisible">True</attribute>
             </xpath>
-            <xpath expr="//button[@name='action_save_template']" position="attributes">
-                <attribute name="invisible">not allow_template_creation or role_sync_shift_rental</attribute>
+            <!-- Seule action de création côté hôtel : visible même avant le choix
+                 de la chambre, en bouton principal (violet). -->
+            <xpath expr="//button[@name='action_create_order']" position="attributes">
+                <attribute name="string">Créer la réservation</attribute>
+                <attribute name="class">btn btn-primary</attribute>
+                <attribute name="invisible">sale_line_id or not (context.get('hotel_planning') or role_sync_shift_rental)</attribute>
             </xpath>
         </field>
     </record>
