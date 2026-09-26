@@ -131,9 +131,9 @@
 }
 
 // Planning hôtel : pastilles collées à la grille (haut, bas, gauche), comme
-// eZee. web_gantt met padding: 1px sur le wrapper ; on ne garde que 1px à
-// droite pour séparer deux séjours consécutifs dans la même chambre.
+// eZee. web_gantt met padding: 1px sur le wrapper ; on le réduit à 0.5px
+// pour garder une séparation fine entre deux séjours consécutifs.
 // :has(.o_hotel_stats) limite la règle à la vue qui porte le tableau de bord.
 .o_gantt_view:has(.o_hotel_stats) .o_gantt_pill_wrapper {
-    padding: 0 1px 0 0;
+    padding: 0.5px;
 }
