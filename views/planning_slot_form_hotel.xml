@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Fenêtre de création/édition d'un séjour depuis le planning hôtel.
+         Tout est conditionné par role_sync_shift_rental (rôle synchronisé avec
+         la location = chambre) : l'app Planning standard n'est pas touchée. -->
+    <record id="planning_view_form_in_gantt_hotel" model="ir.ui.view">
+        <field name="name">planning.slot.form.gantt.hotel</field>
+        <field name="model">planning.slot</field>
+        <field name="inherit_id" ref="planning.planning_view_form_in_gantt"/>
+        <field name="priority">99</field>
+        <field name="arch" type="xml">
+            <!-- Une chambre se vend par « Créer la réservation » : pas de choix
+                 manuel d'une ligne de commande existante. -->
+            <xpath expr="//label[@for='sale_line_id']" position="attributes">
+                <attribute name="invisible">role_sync_shift_rental</attribute>
+            </xpath>
+            <xpath expr="//div[field[@name='sale_line_id']]" position="attributes">
+                <attribute name="invisible">role_sync_shift_rental</attribute>
+            </xpath>
+            <!-- Enregistrer masqué à la création seulement : un séjour sans
+                 commande deviendrait un devis orphelin (pastille grise). -->
+            <xpath expr="(//footer/button[@special='save'])[1]" position="attributes">
+                <attribute name="invisible">confirm_delete or (role_sync_shift_rental and not id)</attribute>
+            </xpath>
+            <xpath expr="(//footer/button[@special='save'])[2]" position="attributes">
+                <attribute name="invisible">not confirm_delete or (role_sync_shift_rental and not id)</attribute>
+            </xpath>
+            <xpath expr="//button[@name='action_create_order']" position="attributes">
+                <attribute name="string">Créer la réservation</attribute>
+            </xpath>
+            <xpath expr="//button[@name='action_add_last_order']" position="attributes">
+                <attribute name="invisible">True</attribute>
+            </xpath>
+            <xpath expr="//button[@name='action_save_template']" position="attributes">
+                <attribute name="invisible">not allow_template_creation or role_sync_shift_rental</attribute>
+            </xpath>
+        </field>
+    </record>
+</odoo>
