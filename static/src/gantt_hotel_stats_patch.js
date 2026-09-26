@@ -9,6 +9,7 @@ patch(PlanningGanttRenderer.prototype, {
         super.setup();
         console.log("[HOTEL] setup patché exécuté");
         this.orm = useService("orm");
+        this.hotelAction = useService("action");
         this.hotelStats = useState({ data: null, height: 0 });
         this._hotelStatsSeq = 0;
         if (this.isHotelPlanning) {
@@ -43,6 +44,33 @@ patch(PlanningGanttRenderer.prototype, {
         const style = super.getGridStyle();
         const height = this.hotelStats?.height;
         return height ? `${style};--Hotel__Stats-height:${height}px` : style;
+    },
+
+    async getPopoverProps(pill) {
+        const props = await super.getPopoverProps(...arguments);
+        if (!this.isHotelPlanning) {
+            return props;
+        }
+        // Planning hôtel : ni Déprogrammer ni Supprimer depuis le planning.
+        // Une réservation s'ouvre sur sa commande (même action que le lien
+        // S00xxx du popover) ; un devis sans commande garde « Modifier ».
+        const [slot] = await this.orm.read("planning.slot", [pill.record.id], ["sale_line_id"]);
+        if (!slot?.sale_line_id) {
+            props.buttons = props.buttons.slice(0, 1);
+            return props;
+        }
+        const [line] = await this.orm.read("sale.order.line", [slot.sale_line_id[0]], ["order_id"]);
+        props.buttons = [{
+            text: "Ouvrir la fiche",
+            class: "btn btn-sm btn-primary",
+            onClick: () => this.hotelAction.doAction({
+                type: "ir.actions.act_window",
+                res_model: "sale.order",
+                res_id: line.order_id[0],
+                views: [[false, "form"]],
+            }),
+        }];
+        return props;
     },
 
     // Le bloc est frère de la grille, pas enfant : il n'hérite pas de
