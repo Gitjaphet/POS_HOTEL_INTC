@@ -2,7 +2,7 @@ from datetime import timedelta
 
 import pytz
 
-from odoo import api, fields, models
+from odoo import Command, api, fields, models
 from odoo.exceptions import ValidationError
 
 
@@ -58,6 +58,15 @@ class PlanningSlot(models.Model):
                     for view_id, view_type in action['views']
                 ]
                 action['view_id'] = hotel_view.id
+            # Pré-remplit les dates de séjour de la ligne chambre. Elles ne sont
+            # posées qu'au create() de la ligne : sans ça, le brouillon affiche
+            # Début/Fin séjour vides et 0 nuit jusqu'à l'enregistrement.
+            for command in action.get('context', {}).get('default_order_line', []):
+                if command[0] == Command.CREATE:
+                    command[2].update({
+                        'x_room_start_date': self.start_datetime,
+                        'x_room_return_date': self.end_datetime,
+                    })
         return action
 
 
