@@ -69,7 +69,9 @@ class SaleOrderLine(models.Model):
                 delta = line.x_room_return_date - line.x_room_start_date
                 line.x_room_nights = max(1, delta.days + (1 if delta.seconds else 0))
                 continue
-            vals = self.env['product.pricing']._compute_duration_vals(
+            vals = self.env['product.pricing'].with_context(
+                hotel_nights=line._x_uses_hotel_nights(),
+            )._compute_duration_vals(
                 line.x_room_start_date, line.x_room_return_date
             )
             duration_in_unit = vals[recurrence.unit]
@@ -596,10 +598,20 @@ class SaleOrderLine(models.Model):
             ):
                 line.price_unit = line._get_pricelist_price()
 
+    def _x_uses_hotel_nights(self):
+        """Chambre tarifée en nuits (récurrence Overnight, ex. « Nights ») :
+        durée comptée en nuits hôtelières. Les chambres à l'heure (TEST HEURE)
+        gardent le calcul horaire natif de Rental."""
+        self.ensure_one()
+        recurrence = self._get_room_recurrence()
+        return bool(self.x_is_a_room_offer and recurrence and recurrence.overnight)
+
     def _get_pricelist_price(self):
         if self.is_rental and self.x_is_a_room_offer and self.x_room_start_date and self.x_room_return_date:
             self.order_id._rental_set_dates()
-            return self.order_id.pricelist_id._get_product_price(
+            return self.order_id.pricelist_id.with_context(
+                hotel_nights=self._x_uses_hotel_nights(),
+            )._get_product_price(
                 self.product_id.with_context(**self._get_product_price_context()),
                 self.product_uom_qty or 1.0,
                 currency=self.currency_id,
