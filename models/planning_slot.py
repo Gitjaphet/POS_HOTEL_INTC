@@ -67,6 +67,9 @@ class PlanningSlot(models.Model):
                         'x_room_start_date': self.start_datetime,
                         'x_room_return_date': self.end_datetime,
                     })
+            # Permet au formulaire de commande de supprimer ce créneau si le
+            # brouillon est abandonné (voir form_hotel_draft_patch.js).
+            action.setdefault('context', {})['hotel_draft_slot_id'] = self.id
         return action
 
 
@@ -130,6 +133,17 @@ class PlanningSlot(models.Model):
             'views': [(view.id, 'form')],
             'target': 'current',
         }
+
+    def action_discard_hotel_draft(self):
+        """Supprime le créneau chambre laissé par un brouillon de réservation
+        abandonné (« Créer la réservation » enregistre le créneau avant
+        d'ouvrir la commande). Sécurité : seuls les créneaux chambre encore
+        sans commande sont supprimés ; une vraie réservation n'est jamais touchée.
+        """
+        self.exists().filtered(
+            lambda s: not s.sale_line_id and s.role_id.x_is_a_room_offer
+        ).unlink()
+        return True
 
     @api.depends('role_id', 'sale_line_id')
     def _compute_display_name(self):

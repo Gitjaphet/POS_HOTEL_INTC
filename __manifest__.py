@@ -36,6 +36,7 @@
         ],
         "web.assets_backend": [
             "POS_HOTEL_INTC/static/src/scss/room_removed_line.scss",
+            "POS_HOTEL_INTC/static/src/form_hotel_draft_patch.js",
         ],
         # Les vues Gantt sont chargées à la demande : leurs composants et
         # templates vivent dans le bundle "lazy", jamais dans assets_backend.
