@@ -103,6 +103,25 @@ class PlanningSlot(models.Model):
             order = slot.sale_line_id.order_id
             slot.x_payment_state = order._get_folio_payment_state() if order else 'none'
 
+    def action_open_hotel_folio(self):
+        """Ouvre le folio (sale.order) lié avec le formulaire hôtel.
+
+        Appelée par le popover du planning hôtel (bouton « Ouvrir la fiche »).
+        Renvoie False pour un devis sans commande liée.
+        """
+        self.ensure_one()
+        order = self.sale_line_id.order_id
+        if not order:
+            return False
+        view = self.env.ref('POS_HOTEL_INTC.sale_order_primary_view_pos_hotel_intc')
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'sale.order',
+            'res_id': order.id,
+            'views': [(view.id, 'form')],
+            'target': 'current',
+        }
+
     @api.depends('role_id', 'sale_line_id')
     def _compute_display_name(self):
         super()._compute_display_name()
