@@ -52,6 +52,13 @@
             <xpath expr="//button[@name='action_add_last_order']" position="attributes">
                 <attribute name="invisible">True</attribute>
             </xpath>
+            <!-- Liste de prix reprise par « Créer la réservation » : le
+                 brouillon de commande affiche le prix immédiatement. -->
+            <xpath expr="//field[@name='allocated_hours']/ancestor::group[1]" position="inside">
+                <field name="x_pricelist_id"
+                       options="{'no_create': True}"
+                       invisible="not (context.get('hotel_planning') or role_sync_shift_rental)"/>
+            </xpath>
             <!-- Seule action de création côté hôtel : visible même avant le choix
                  de la chambre, en bouton principal (violet). -->
             <xpath expr="//button[@name='action_create_order']" position="attributes">

@@ -45,6 +45,14 @@ class PlanningSlot(models.Model):
              "métier — voir x_stay_status.",
     )
 
+    x_pricelist_id = fields.Many2one(
+        'product.pricelist',
+        string="Liste de prix",
+        help="Choisie à la création depuis le planning hôtel et reprise par "
+             "« Créer la réservation » : le brouillon affiche le prix sans "
+             "attendre le choix du client.",
+    )
+
     def action_create_order(self):
         action = super().action_create_order()
         if self.role_id.x_is_a_room_offer:
@@ -67,6 +75,10 @@ class PlanningSlot(models.Model):
                         'x_room_start_date': self.start_datetime,
                         'x_room_return_date': self.end_datetime,
                     })
+            # Liste de prix choisie dans la fenêtre du planning : le brouillon
+            # calcule le prix de la chambre sans attendre le choix du client.
+            if self.x_pricelist_id:
+                action.setdefault('context', {})['default_pricelist_id'] = self.x_pricelist_id.id
             # Permet au formulaire de commande de supprimer ce créneau si le
             # brouillon est abandonné (voir form_hotel_draft_patch.js).
             action.setdefault('context', {})['hotel_draft_slot_id'] = self.id
