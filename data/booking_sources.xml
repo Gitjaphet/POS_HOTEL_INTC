@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- Sources de réservation de départ (« Business Source » des PMS).
+         noupdate : renommages ou désactivations faits par l'hôtel conservés. -->
+    <record id="utm_source_booking_com" model="utm.source">
+        <field name="name">Booking.com</field>
+    </record>
+    <record id="utm_source_website" model="utm.source">
+        <field name="name">Site web</field>
+    </record>
+    <record id="utm_source_direct" model="utm.source">
+        <field name="name">Contact direct</field>
+    </record>
+    <record id="utm_source_walk_in" model="utm.source">
+        <field name="name">Walk-in</field>
+    </record>
+    <record id="utm_source_agency" model="utm.source">
+        <field name="name">Agence</field>
+    </record>
+</odoo>

@@ -7,6 +7,7 @@
     "data": [
         "security/ir.model.access.csv",
         "data/night_audit_sequence.xml",
+        "data/booking_sources.xml",
         "views/night_audit_views.xml",
         "views/report_invoice_inherit.xml",
         "views/pos_payment_method_views.xml",

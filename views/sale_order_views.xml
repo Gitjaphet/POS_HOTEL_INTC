@@ -183,6 +183,17 @@
       <!-- Synthèse d'occupation sous la durée du séjour, même construction
            que la ligne Durée (label + o_row). Totaux calculés : lecture seule,
            la saisie se fait chambre par chambre dans les lignes. -->
+      <!-- Source de réservation (Booking.com, Site web, Contact direct…) :
+           champ natif utm déplacé depuis Autres informations > Suivi vers
+           l'en-tête, obligatoire pour les réservations (statistiques par canal). -->
+      <xpath expr="//field[@name='partner_shipping_id']" position="after">
+        <xpath expr="//field[@name='source_id']" position="move"/>
+      </xpath>
+      <xpath expr="//field[@name='source_id']" position="attributes">
+        <attribute name="string">Source de réservation</attribute>
+        <attribute name="required">is_rental_order</attribute>
+        <attribute name="options">{'no_create_edit': True}</attribute>
+      </xpath>
       <xpath expr="//div[field[@name='duration_days']]" position="after">
         <label for="x_occupancy_display" string="Occupation" invisible="not is_rental_order"/>
         <field name="x_occupancy_display" nolabel="1" invisible="not is_rental_order"/>
