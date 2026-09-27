@@ -184,16 +184,8 @@
            que la ligne Durée (label + o_row). Totaux calculés : lecture seule,
            la saisie se fait chambre par chambre dans les lignes. -->
       <xpath expr="//div[field[@name='duration_days']]" position="after">
-        <label for="x_adults_total" string="Occupation" invisible="not is_rental_order"/>
-        <div class="o_row" invisible="not is_rental_order">
-          <field name="x_adults_total" class="oe_inline" style="max-width: 2rem" readonly="1"/>
-          <span invisible="x_adults_total > 1"> adulte</span>
-          <span invisible="x_adults_total &lt;= 1"> adultes</span>
-          <span> · </span>
-          <field name="x_children_total" class="oe_inline" style="max-width: 2rem" readonly="1"/>
-          <span invisible="x_children_total > 1"> enfant</span>
-          <span invisible="x_children_total &lt;= 1"> enfants</span>
-        </div>
+        <label for="x_occupancy_display" string="Occupation" invisible="not is_rental_order"/>
+        <field name="x_occupancy_display" nolabel="1" invisible="not is_rental_order"/>
       </xpath>
       
 

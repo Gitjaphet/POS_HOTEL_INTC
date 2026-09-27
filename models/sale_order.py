@@ -101,6 +101,19 @@ class SaleOrder(models.Model):
             order.x_adults_total = sum(rooms.mapped('x_adults'))
             order.x_children_total = sum(rooms.mapped('x_children'))
 
+    x_occupancy_display = fields.Char(
+        string="Occupation", compute='_compute_x_occupancy_display',
+    )
+
+    @api.depends('x_adults_total', 'x_children_total')
+    def _compute_x_occupancy_display(self):
+        for order in self:
+            adults, children = order.x_adults_total, order.x_children_total
+            order.x_occupancy_display = "%s adulte%s · %s enfant%s" % (
+                adults, "s" if adults > 1 else "",
+                children, "s" if children > 1 else "",
+            )
+
     def _compute_pricelist_id(self):
         super()._compute_pricelist_id()
         # Réservation créée depuis le planning hôtel avec une liste de prix
