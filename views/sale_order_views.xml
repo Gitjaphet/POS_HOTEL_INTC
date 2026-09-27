@@ -11,6 +11,7 @@
         <page string="Extra Charge" name="x_extra_charge">
           <field name="x_folio_charge_normal_ids" nolabel="1">
             <list create="0" delete="0" default_group_by="payment_status">
+              <field name="currency_id" column_invisible="1"/>
               <field name="date"/>
               <field name="name"/>
               <field name="occupant_display"/>
@@ -60,6 +61,7 @@
           <separator string="Historique des remboursements"/>
           <field name="x_folio_charge_refund_ids" nolabel="1">
             <list create="0" delete="0">
+              <field name="currency_id" column_invisible="1"/>
               <field name="date"/>
               <field name="name"/>
               <field name="original_charge_id" string="Charge d'origine"/>
@@ -74,6 +76,7 @@
         <page string="Service" name="x_service_charge">
           <field name="x_folio_charge_service_ids" nolabel="1">
             <list create="0" delete="0" default_group_by="payment_status">
+              <field name="currency_id" column_invisible="1"/>
               <field name="date"/>
               <field name="name"/>
               <field name="occupant_display"/>
@@ -122,6 +125,7 @@
           <separator string="Historique des remboursements"/>
           <field name="x_folio_charge_refund_service_ids" nolabel="1">
             <list create="0" delete="0">
+              <field name="currency_id" column_invisible="1"/>
               <field name="date"/>
               <field name="name"/>
               <field name="original_charge_id" string="Charge d'origine"/>
