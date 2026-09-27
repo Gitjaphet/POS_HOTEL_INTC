@@ -7,6 +7,7 @@ from . import sale_order
 from . import pos_order
 from . import sale_order_line
 from . import product_pricing
+from . import utm_source
 from . import rental_order_wizard
 from . import room_removal_log
 from . import planning_slot

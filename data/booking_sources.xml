@@ -4,17 +4,22 @@
          noupdate : renommages ou désactivations faits par l'hôtel conservés. -->
     <record id="utm_source_booking_com" model="utm.source">
         <field name="name">Booking.com</field>
+        <field name="x_is_booking_source" eval="True"/>
     </record>
     <record id="utm_source_website" model="utm.source">
         <field name="name">Site web</field>
+        <field name="x_is_booking_source" eval="True"/>
     </record>
     <record id="utm_source_direct" model="utm.source">
         <field name="name">Contact direct</field>
+        <field name="x_is_booking_source" eval="True"/>
     </record>
     <record id="utm_source_walk_in" model="utm.source">
         <field name="name">Walk-in</field>
+        <field name="x_is_booking_source" eval="True"/>
     </record>
     <record id="utm_source_agency" model="utm.source">
         <field name="name">Agence</field>
+        <field name="x_is_booking_source" eval="True"/>
     </record>
 </odoo>

@@ -193,6 +193,8 @@
         <attribute name="string">Source de réservation</attribute>
         <attribute name="required">is_rental_order</attribute>
         <attribute name="options">{'no_create_edit': True}</attribute>
+        <attribute name="domain">[('x_is_booking_source', '=', True)]</attribute>
+        <attribute name="context">{'default_x_is_booking_source': True}</attribute>
       </xpath>
       <xpath expr="//div[field[@name='duration_days']]" position="after">
         <label for="x_occupancy_display" string="Occupation" invisible="not is_rental_order"/>
