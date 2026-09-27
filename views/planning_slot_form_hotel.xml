@@ -58,6 +58,8 @@
                 <field name="x_pricelist_id"
                        options="{'no_create': True}"
                        invisible="not (context.get('hotel_planning') or role_sync_shift_rental)"/>
+                       <field name="x_adults" invisible="not (context.get('hotel_planning') or role_sync_shift_rental)"/>
+                       <field name="x_children" invisible="not (context.get('hotel_planning') or role_sync_shift_rental)"/>
             </xpath>
             <!-- Seule action de création côté hôtel : visible même avant le choix
                  de la chambre, en bouton principal (violet). -->

@@ -47,11 +47,19 @@ class PlanningSlot(models.Model):
 
     x_pricelist_id = fields.Many2one(
         'product.pricelist',
+        default=lambda self: self.env['product.pricelist'].search(
+            [('company_id', 'in', [self.env.company.id, False])], limit=1,
+        ),
         string="Liste de prix",
         help="Choisie à la création depuis le planning hôtel et reprise par "
              "« Créer la réservation » : le brouillon affiche le prix sans "
              "attendre le choix du client.",
     )
+
+    # Occupation saisie dès la fenêtre du planning, recopiée sur la ligne de
+    # chambre par « Créer la réservation » (comme les dates et le tarif).
+    x_adults = fields.Integer(string="Adultes", default=1)
+    x_children = fields.Integer(string="Enfants", default=0)
 
     def action_create_order(self):
         action = super().action_create_order()
@@ -74,6 +82,8 @@ class PlanningSlot(models.Model):
                     command[2].update({
                         'x_room_start_date': self.start_datetime,
                         'x_room_return_date': self.end_datetime,
+                        'x_adults': self.x_adults,
+                        'x_children': self.x_children,
                     })
             # Liste de prix choisie dans la fenêtre du planning : le brouillon
             # calcule le prix de la chambre sans attendre le choix du client.
