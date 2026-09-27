@@ -85,6 +85,22 @@ class SaleOrder(models.Model):
              "confondus, pour le suivi check-in/check-out par chambre précise.",
     )
 
+    # Totaux d'occupation de la réservation (somme des chambres), stockés pour
+    # les filtres, regroupements et rapports (petit déjeuner, statistiques).
+    x_adults_total = fields.Integer(
+        string="Adultes", compute='_compute_x_occupancy_totals', store=True,
+    )
+    x_children_total = fields.Integer(
+        string="Enfants", compute='_compute_x_occupancy_totals', store=True,
+    )
+
+    @api.depends('order_line.x_adults', 'order_line.x_children')
+    def _compute_x_occupancy_totals(self):
+        for order in self:
+            rooms = order.order_line.filtered('x_is_a_room_offer')
+            order.x_adults_total = sum(rooms.mapped('x_adults'))
+            order.x_children_total = sum(rooms.mapped('x_children'))
+
     def _compute_pricelist_id(self):
         super()._compute_pricelist_id()
         # Réservation créée depuis le planning hôtel avec une liste de prix

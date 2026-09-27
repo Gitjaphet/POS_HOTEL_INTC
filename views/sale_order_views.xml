@@ -180,6 +180,21 @@
       <xpath expr="//field[@name='rental_start_date']" position="attributes">
         <attribute name="invisible">x_folio_is_multi_room</attribute>
       </xpath>
+      <!-- Synthèse d'occupation sous la durée du séjour, même construction
+           que la ligne Durée (label + o_row). Totaux calculés : lecture seule,
+           la saisie se fait chambre par chambre dans les lignes. -->
+      <xpath expr="//div[field[@name='duration_days']]" position="after">
+        <label for="x_adults_total" string="Occupation" invisible="not is_rental_order"/>
+        <div class="o_row" invisible="not is_rental_order">
+          <field name="x_adults_total" class="oe_inline" style="max-width: 2rem" readonly="1"/>
+          <span invisible="x_adults_total > 1"> adulte</span>
+          <span invisible="x_adults_total &lt;= 1"> adultes</span>
+          <span> · </span>
+          <field name="x_children_total" class="oe_inline" style="max-width: 2rem" readonly="1"/>
+          <span invisible="x_children_total > 1"> enfant</span>
+          <span invisible="x_children_total &lt;= 1"> enfants</span>
+        </div>
+      </xpath>
       
 
       <button name="action_cancel" position="attributes">
@@ -224,6 +239,12 @@
       </xpath>
       <xpath expr="//field[@name='order_line']//list//field[@name='x_room_return_date']" position="after">
         <field name="x_room_nights" string="Nuits" invisible="not x_is_a_room_offer"/>
+      </xpath>
+      <!-- Occupation de la chambre, saisie à la réservation : colonnes
+           étroites entre les dates du séjour et le nombre de nuits. -->
+      <xpath expr="//field[@name='order_line']//list//field[@name='x_room_nights']" position="before">
+        <field name="x_adults" string="Adultes" width="70px" invisible="not x_is_a_room_offer"/>
+        <field name="x_children" string="Enfants" width="70px" invisible="not x_is_a_room_offer"/>
       </xpath>
       <xpath expr="//field[@name='order_line']//list//field[@name='product_uom_qty']" position="attributes">
         <attribute name="column_invisible">1</attribute>

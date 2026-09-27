@@ -34,6 +34,10 @@ class SaleOrderLine(models.Model):
     )
     x_room_start_date = fields.Datetime(string="Début séjour (chambre)")
     x_room_return_date = fields.Datetime(string="Fin séjour (chambre)")
+    # Occupation de la chambre, saisie à la réservation (méthode des PMS :
+    # les nombres à la réservation, les noms des voyageurs au check-in).
+    x_adults = fields.Integer(string="Adultes", default=1)
+    x_children = fields.Integer(string="Enfants", default=0)
 
     @api.depends('planning_slot_ids.resource_id')
     def _compute_x_room_resource_ids(self):
@@ -140,6 +144,14 @@ class SaleOrderLine(models.Model):
                 line.x_room_price_per_night = line.price_unit / line.x_room_nights
             else:
                 line.x_room_price_per_night = 0.0
+
+    @api.constrains('x_adults', 'x_children')
+    def _check_room_occupancy(self):
+        for line in self.filtered('x_is_a_room_offer'):
+            if line.x_adults < 1:
+                raise ValidationError("Chambre : au moins 1 adulte est requis.")
+            if line.x_children < 0:
+                raise ValidationError("Chambre : le nombre d'enfants ne peut pas être négatif.")
 
     @api.constrains('x_room_start_date', 'x_room_return_date')
     def _check_x_room_dates(self):
