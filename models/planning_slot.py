@@ -168,6 +168,45 @@ class PlanningSlot(models.Model):
         ).unlink()
         return True
 
+    def write(self, vals):
+        res = super().write(vals)
+        # Planning → commande : une barre de chambre déplacée ou étirée à la
+        # souris met à jour les dates de sa ligne (nuits et prix). Les
+        # écritures faites par la ligne elle-même (rental_order_updated,
+        # x_syncing_room_dates) sont ignorées : c'est le garde anti-boucle.
+        if (
+            ('start_datetime' in vals or 'end_datetime' in vals)
+            and not self.env.context.get('rental_order_updated')
+            and not self.env.context.get('x_syncing_room_dates')
+        ):
+            self._x_sync_room_line_dates(
+                start_changed='start_datetime' in vals,
+                end_changed='end_datetime' in vals,
+            )
+        return res
+
+    def _x_sync_room_line_dates(self, start_changed, end_changed):
+        """Reporte les dates d'une barre de chambre sur sa ligne de commande,
+        via _adjust_room_stay_date (même logique que le check-in/out : chambre
+        séparée si la ligne en regroupe plusieurs, prix recalculé).
+
+        Les nouvelles dates sont mémorisées avant le premier ajustement : la
+        resynchronisation ligne → créneau qu'il déclenche remet temporairement
+        l'ancienne fin sur le créneau, corrigée par le second ajustement.
+        """
+        slots = self.filtered(
+            lambda s: s.sale_line_id
+            and s.role_id.x_is_a_room_offer
+            and s.sale_line_id.order_id.state != 'cancel'
+        )
+        for slot in slots:
+            new_start, new_end = slot.start_datetime, slot.end_datetime
+            line = slot.sale_line_id
+            if start_changed and line.x_room_start_date != new_start:
+                line = line._adjust_room_stay_date(slot, 'start', new_start)
+            if end_changed and line.x_room_return_date != new_end:
+                line._adjust_room_stay_date(slot, 'end', new_end)
+
     @api.depends('role_id', 'sale_line_id')
     def _compute_display_name(self):
         super()._compute_display_name()
