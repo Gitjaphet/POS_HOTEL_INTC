@@ -161,7 +161,12 @@ class PosHotelChangeRoomWizard(models.TransientModel):
         # 4. Nouveau tarif : produit du nouveau type, prix recalculé (règle
         # des nuits hôtelières). Surclassement : ligne inchangée.
         if reprice:
-            line.product_id = self.new_product_id
+            # in_rental_app : sans ce contexte, _compute_is_rental (sale_renting)
+            # repasse la ligne en vente simple (prix catalogue, plus de dates).
+            line.with_context(in_rental_app=True).write({
+                "product_id": self.new_product_id.id,
+                "is_rental": True,
+            })
             line.price_unit = line._get_pricelist_price()
             self.env.add_to_compute(line._fields["name"], line)
 
