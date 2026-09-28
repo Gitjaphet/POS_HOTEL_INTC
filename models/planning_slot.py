@@ -3,7 +3,7 @@ from datetime import timedelta
 import pytz
 
 from odoo import Command, api, fields, models
-from odoo.exceptions import ValidationError
+from odoo.exceptions import UserError, ValidationError
 
 
 class PlanningSlot(models.Model):
@@ -169,6 +169,11 @@ class PlanningSlot(models.Model):
         return True
 
     def write(self, vals):
+        # Changement de chambre vers un autre type (glisser-déposer, édition) :
+        # refusé ici, avant écriture. Le changement de type passe par l'action
+        # « Changer de chambre » (contexte x_room_type_change).
+        if 'resource_id' in vals and not self.env.context.get('x_room_type_change'):
+            self._x_check_room_type(vals['resource_id'])
         res = super().write(vals)
         # Planning → commande : une barre de chambre déplacée ou étirée à la
         # souris met à jour les dates de sa ligne (nuits et prix). Les
@@ -194,6 +199,25 @@ class PlanningSlot(models.Model):
             if lines:
                 self.env.add_to_compute(self.env['sale.order.line']._fields['name'], lines)
         return res
+
+    def _x_check_room_type(self, resource_id):
+        """Refuse de déplacer une chambre réservée vers une chambre d'un autre
+        type : la nouvelle ressource doit accepter le rôle du créneau
+        (role_ids ; default_role_id est réservé au groupe RH)."""
+        resource = self.env['resource.resource'].browse(resource_id)
+        if not resource or not resource.role_ids:
+            return
+        for slot in self.filtered(lambda s: s.role_id.x_is_a_room_offer):
+            if slot.role_id not in resource.role_ids:
+                raise UserError(
+                    "Chambre %s : c'est une « %s », la réservation porte sur une « %s ».\n"
+                    "Pour changer de type de chambre, utilisez l'action "
+                    "« Changer de chambre » depuis la réservation." % (
+                        resource.name,
+                        ", ".join(resource.role_ids.mapped('name')),
+                        slot.role_id.name,
+                    )
+                )
 
     def _x_sync_room_line_dates(self, start_changed, end_changed):
         """Reporte les dates d'une barre de chambre sur sa ligne de commande,
