@@ -14,6 +14,7 @@
         "wizards/folio_settle_wizard_views.xml",
         "wizards/order_cancel_wizard_views.xml",
         "wizards/add_room_wizard_views.xml",
+        "wizards/change_room_wizard_views.xml",
         "wizards/remove_room_wizard_views.xml",
         "wizards/checkin_wizard_views.xml",
         "wizards/charge_cancel_wizard_views.xml",

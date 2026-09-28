@@ -275,6 +275,11 @@
                 icon="fa-minus-circle"
                 title="Retirer une chambre"
                 invisible="not x_is_a_room_offer or parent.state != 'sale' or parent.locked"/>
+        <button name="action_open_change_room_wizard"
+                type="object"
+                icon="fa-exchange"
+                title="Changer de chambre"
+                invisible="not x_is_a_room_offer or parent.state != 'sale' or parent.locked"/>
       </xpath>
 
       <xpath expr="//field[@name='order_line']" position="attributes">

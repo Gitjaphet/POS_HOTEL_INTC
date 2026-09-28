@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_pos_hotel_change_room_wizard_form" model="ir.ui.view">
+        <field name="name">pos.hotel.change.room.wizard.form</field>
+        <field name="model">pos.hotel.change.room.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Changer de chambre">
+                <field name="sale_order_line_id" invisible="1"/>
+                <field name="available_resource_ids" invisible="1"/>
+                <field name="available_product_ids" invisible="1"/>
+                <field name="type_changed" invisible="1"/>
+                <group>
+                    <field name="slot_id" options="{'no_create': True, 'no_open': True}"/>
+                    <field name="current_resource_id" readonly="1"/>
+                    <field name="new_resource_id" options="{'no_create': True, 'no_open': True}"/>
+                </group>
+                <div class="alert alert-warning" role="alert" invisible="not type_changed">
+                    Changement de type de chambre : choisissez le tarif à appliquer et indiquez le motif.
+                </div>
+                <group invisible="not type_changed">
+                    <field name="pricing_mode" widget="radio" required="type_changed"/>
+                    <field name="new_product_id" options="{'no_create': True, 'no_open': True}"
+                           invisible="pricing_mode != 'reprice'"
+                           required="type_changed and pricing_mode == 'reprice'"/>
+                    <field name="reason" required="type_changed"
+                           placeholder="Ex. chambre réservée indisponible, demande du client, geste commercial…"/>
+                </group>
+                <footer>
+                    <button string="Changer de chambre" name="action_confirm_change_room"
+                            type="object" class="btn-primary" data-hotkey="q"/>
+                    <button string="Retour" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

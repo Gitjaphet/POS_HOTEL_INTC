@@ -386,6 +386,17 @@ class SaleOrderLine(models.Model):
             'context': {'default_sale_order_line_id': self.id},
         }
 
+    def action_open_change_room_wizard(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': "Changer de chambre",
+            'res_model': 'pos.hotel.change.room.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_sale_order_line_id': self.id},
+        }
+
     def action_open_remove_room_wizard(self):
         self.ensure_one()
         return {

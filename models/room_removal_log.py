@@ -3,7 +3,7 @@ from odoo import fields, models
 
 class PosHotelRoomRemovalLog(models.Model):
     _name = "pos.hotel.room.removal.log"
-    _description = "Historique des chambres retirées d'un séjour"
+    _description = "Historique des chambres d'un séjour (retraits et changements)"
     _order = "date desc"
 
     sale_order_id = fields.Many2one(
@@ -29,13 +29,13 @@ class PosHotelRoomRemovalLog(models.Model):
         required=True,
     )
     date = fields.Datetime(
-        string="Date du retrait",
+        string="Date",
         required=True,
         default=fields.Datetime.now,
     )
     user_id = fields.Many2one(
         "res.users",
-        string="Retiré par",
+        string="Par",
         required=True,
         default=lambda self: self.env.user,
     )
@@ -52,4 +52,29 @@ class PosHotelRoomRemovalLog(models.Model):
     )
     currency_id = fields.Many2one(
         related="sale_order_id.currency_id",
+    )
+    # Changements de chambre (action « Changer de chambre ») : même journal
+    # que les retraits, pour un historique unique par séjour. Défaut
+    # « Retrait » : les entrées existantes restent des retraits.
+    event_type = fields.Selection(
+        [("removal", "Retrait"), ("change", "Changement")],
+        string="Événement",
+        required=True,
+        default="removal",
+    )
+    new_resource_id = fields.Many2one(
+        "resource.resource",
+        string="Nouvelle chambre",
+        ondelete="set null",
+    )
+    new_resource_name = fields.Char(
+        string="Nom de la nouvelle chambre",
+    )
+    pricing_mode = fields.Selection(
+        [
+            ("same_type", "Même type"),
+            ("upgrade", "Surclassement gratuit"),
+            ("reprice", "Nouveau tarif"),
+        ],
+        string="Tarif",
     )

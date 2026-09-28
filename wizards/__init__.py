@@ -7,3 +7,4 @@ from . import charge_cancel_wizard
 from . import charge_refund_wizard
 from . import charge_add_wizard
 from . import charge_add_service_wizard
+from . import change_room_wizard
