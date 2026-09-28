@@ -183,6 +183,16 @@ class PlanningSlot(models.Model):
                 start_changed='start_datetime' in vals,
                 end_changed='end_datetime' in vals,
             )
+        # Changement de chambre (glisser-déposer vertical) : la description de
+        # la ligne (« Chambre 302 — 4 Nights ») est un champ stocké qui ne
+        # dépend pas de la ressource ; on la remet en file de recalcul, comme
+        # _sync_existing_room_slots_dates le fait pour les dates.
+        if 'resource_id' in vals and not self.env.context.get('x_syncing_room_dates'):
+            lines = self.filtered(
+                lambda s: s.sale_line_id and s.role_id.x_is_a_room_offer
+            ).sale_line_id
+            if lines:
+                self.env.add_to_compute(self.env['sale.order.line']._fields['name'], lines)
         return res
 
     def _x_sync_room_line_dates(self, start_changed, end_changed):
