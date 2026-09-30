@@ -1,38 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Paramètres > Hôtel : section propre au module. -->
+    <!-- Paramètres > Hôtel (section « accomodation » de booking_engine).
+         Priorité 99 : appliquée après la vue de booking_engine qui crée
+         la section. -->
     <record id="res_config_settings_view_form_pos_hotel_intc" model="ir.ui.view">
         <field name="name">res.config.settings.form.pos_hotel_intc</field>
         <field name="model">res.config.settings</field>
         <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="priority">99</field>
         <field name="arch" type="xml">
-            <xpath expr="//form" position="inside">
-                <app data-string="Hôtel" string="Hôtel" name="POS_HOTEL_INTC">
-                    <block title="Enregistrement des occupants" name="hotel_guest_registration">
-                        <setting id="hotel_guest_scope" string="Occupants à enregistrer"
-                                 help="Qui doit être enregistré (fiche de police) avant l'arrivée.">
-                            <field name="x_guest_registration_scope"/>
-                        </setting>
-                        <setting id="hotel_guest_mode" string="Si incomplet à l'arrivée"
-                                 help="Avertir laisse passer l'arrivée ; Bloquer l'empêche tant que ce n'est pas complet."
-                                 invisible="x_guest_registration_scope == 'none'">
-                            <field name="x_guest_registration_mode" widget="radio"/>
-                        </setting>
-                        <setting id="hotel_guest_require_nationality"
-                                 invisible="x_guest_registration_scope == 'none'">
-                            <field name="x_guest_require_nationality"/>
-                        </setting>
-                        <setting id="hotel_guest_require_document"
-                                 help="Type et numéro de pièce."
-                                 invisible="x_guest_registration_scope == 'none'">
-                            <field name="x_guest_require_document"/>
-                        </setting>
-                        <setting id="hotel_guest_require_birth_date"
-                                 invisible="x_guest_registration_scope == 'none'">
-                            <field name="x_guest_require_birth_date"/>
-                        </setting>
-                    </block>
-                </app>
+            <xpath expr="//app[@name='accomodation']" position="inside">
+                <block title="Enregistrement des occupants" name="hotel_guest_registration">
+                    <setting id="hotel_guest_scope" string="Occupants à enregistrer"
+                             help="Qui doit être enregistré (fiche de police) avant l'arrivée.">
+                        <field name="x_guest_registration_scope"/>
+                    </setting>
+                    <setting id="hotel_guest_mode" string="Si incomplet à l'arrivée"
+                             help="Avertir laisse passer l'arrivée ; Bloquer l'empêche tant que ce n'est pas complet."
+                             invisible="x_guest_registration_scope == 'none'">
+                        <field name="x_guest_registration_mode" widget="radio"/>
+                    </setting>
+                    <setting id="hotel_guest_require_nationality"
+                             invisible="x_guest_registration_scope == 'none'">
+                        <field name="x_guest_require_nationality"/>
+                    </setting>
+                    <setting id="hotel_guest_require_document"
+                             help="Type et numéro de pièce."
+                             invisible="x_guest_registration_scope == 'none'">
+                        <field name="x_guest_require_document"/>
+                    </setting>
+                    <setting id="hotel_guest_require_birth_date"
+                             invisible="x_guest_registration_scope == 'none'">
+                        <field name="x_guest_require_birth_date"/>
+                    </setting>
+                </block>
             </xpath>
         </field>
     </record>
