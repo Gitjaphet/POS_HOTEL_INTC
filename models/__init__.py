@@ -15,4 +15,5 @@ from . import sale_advance_payment_inv
 from . import night_audit
 from . import account_move
 from . import stay_guest
+from . import res_company
 from . import res_config_settings
