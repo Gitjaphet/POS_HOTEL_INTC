@@ -12,6 +12,15 @@ class SaleOrderLine(models.Model):
         "pos.hotel.stay.guest", "sale_order_line_id", string="Occupants",
     )
 
+    @api.depends_context("hotel_room_label")
+    def _compute_display_name(self):
+        # Onglet Occupants : la chambre s'affiche « 401 » au lieu du libellé
+        # complet de la ligne. Ailleurs, le nom d'affichage ne change pas.
+        super()._compute_display_name()
+        if self.env.context.get("hotel_room_label"):
+            for line in self.filtered("x_room_resource_ids"):
+                line.display_name = ", ".join(line.x_room_resource_ids.mapped("name"))
+
     x_room_resource_ids = fields.Many2many(
         'resource.resource',
         compute='_compute_x_room_resource_ids',

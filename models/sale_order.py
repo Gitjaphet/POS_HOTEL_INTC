@@ -5,6 +5,10 @@ from odoo.exceptions import UserError
 class SaleOrder(models.Model):
     _inherit = "sale.order"
 
+    x_stay_guest_ids = fields.One2many(
+        "pos.hotel.stay.guest", "order_id", string="Occupants",
+    )
+
     x_folio_charge_ids = fields.One2many(
         "pos.hotel.folio.charge",
         "sale_order_id",

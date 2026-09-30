@@ -137,7 +137,26 @@
             </list>
           </field>
         </page>
-        <page string="Historique des chambres" name="x_room_removal_history">
+        <page string="Occupants" name="x_stay_guests">
+              <field name="x_stay_guest_ids" nolabel="1">
+                <list editable="bottom">
+                  <field name="sale_order_line_id" string="Chambre"
+                         context="{'hotel_room_label': True}"
+                         options="{'no_create': True, 'no_open': True}"
+                         domain="[('order_id', '=', parent.id), ('x_is_a_room_offer', '=', True)]"/>
+                  <field name="partner_id"/>
+                  <field name="is_main"/>
+                  <field name="is_child"/>
+                  <field name="nationality_id" options="{'no_create': True}"/>
+                  <field name="document_type"/>
+                  <field name="document_number"/>
+                  <field name="document_expiry" optional="hide"/>
+                  <field name="birth_date" optional="show"/>
+                  <field name="birth_place" optional="hide"/>
+                </list>
+              </field>
+            </page>
+            <page string="Historique des chambres" name="x_room_removal_history">
           <field name="x_room_removal_log_ids" nolabel="1">
             <list create="0" delete="0" edit="0">
               <field name="date"/>

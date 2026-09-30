@@ -33,8 +33,8 @@ class PosHotelStayGuest(models.Model):
         ondelete="cascade", index=True,
     )
     order_id = fields.Many2one(
-        related="sale_order_line_id.order_id", store=True, index=True,
-        string="Réservation",
+        "sale.order", string="Réservation", index=True, ondelete="cascade",
+        compute="_compute_order_id", store=True, readonly=False, precompute=True,
     )
     company_id = fields.Many2one(related="order_id.company_id", store=True)
     partner_id = fields.Many2one(
@@ -75,6 +75,19 @@ class PosHotelStayGuest(models.Model):
         "UNIQUE(sale_order_line_id, partner_id)",
         "Cet occupant est déjà enregistré dans cette chambre.",
     )
+
+    @api.depends("sale_order_line_id")
+    def _compute_order_id(self):
+        for guest in self.filtered("sale_order_line_id"):
+            guest.order_id = guest.sale_order_line_id.order_id
+
+    @api.constrains("order_id", "sale_order_line_id")
+    def _check_room_in_order(self):
+        for guest in self:
+            if guest.sale_order_line_id.order_id != guest.order_id:
+                raise ValidationError(
+                    "La chambre choisie n'appartient pas à cette réservation."
+                )
 
     @api.depends("partner_id")
     def _compute_identity(self):
