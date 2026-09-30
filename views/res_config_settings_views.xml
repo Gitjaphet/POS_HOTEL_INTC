@@ -40,8 +40,8 @@
                     </setting>
                 </block>
                 <block title="Fiche de police" name="hotel_police_card">
-                    <setting id="hotel_police_card_footer" string="Mention en bas de fiche"
-                             help="Texte imprimé sous chaque fiche de police (référence réglementaire, rappel au client…).">
+                    <setting id="hotel_police_card_footer" string="Déclaration signée par le client"
+                             help="Imprimée juste au-dessus des signatures : le client l'accepte en signant. Ex. : « Je certifie l'exactitude des renseignements ci-dessus. Départ des chambres à 12 h. L'hôtel décline toute responsabilité pour les objets de valeur non déposés au coffre. » Laisser vide pour ne rien imprimer.">
                         <field name="x_police_card_footer"/>
                     </setting>
                 </block>

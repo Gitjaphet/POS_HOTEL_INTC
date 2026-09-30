@@ -35,12 +35,13 @@
                     <tr><th>Date d'arrivée</th><td><span t-field="line.x_room_start_date" t-options="{'widget': 'date'}"/></td></tr>
                     <tr><th>Départ prévu</th><td><span t-field="line.x_room_return_date" t-options="{'widget': 'date'}"/></td></tr>
                 </table>
-                <div class="row mt-5">
+                <p t-if="guest.company_id.x_police_card_footer" class="mt-4 mb-0"
+                   style="white-space: pre-line;"
+                   t-out="guest.company_id.x_police_card_footer"/>
+                <div class="row mt-4">
                     <div class="col-6"><strong>Signature du client</strong><div class="x-police-box"/></div>
                     <div class="col-6"><strong>Visa de l'hôtel</strong><div class="x-police-box"/></div>
                 </div>
-                <p t-if="guest.company_id.x_police_card_footer" class="mt-4 small text-muted"
-                   t-out="guest.company_id.x_police_card_footer"/>
             </div>
         </t>
     </template>
