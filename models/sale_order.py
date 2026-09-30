@@ -1,3 +1,4 @@
+from markupsafe import Markup
 from odoo import api, fields, models
 from odoo.exceptions import UserError
 
@@ -194,6 +195,20 @@ class SaleOrder(models.Model):
 
     def action_open_pickup(self):
         self.ensure_one()
+        if (self.company_id.x_guest_registration_scope != "none"
+                and not self.env.context.get("x_guest_registration_done")
+                and self.order_line.filtered("x_is_a_room_offer")):
+            self._x_prefill_main_guests()
+            return {
+                "type": "ir.actions.act_window",
+                "name": "Enregistrement des occupants",
+                "res_model": "sale.order",
+                "res_id": self.id,
+                "view_mode": "form",
+                "views": [(self.env.ref(
+                    "POS_HOTEL_INTC.sale_order_view_form_guest_registration").id, "form")],
+                "target": "new",
+            }
         slots = self.order_line.planning_slot_ids.filtered(
             lambda s: s.x_stay_status == 'pending'
         )
@@ -224,6 +239,116 @@ class SaleOrder(models.Model):
                 'default_line_ids': line_vals,
             },
         }
+
+    # --- Enregistrement des occupants à l'arrivée ---------------------
+    x_guest_registration_issues = fields.Text(
+        string="Enregistrement incomplet",
+        compute="_compute_x_guest_registration_issues",
+    )
+
+    @api.depends(
+        "company_id.x_guest_registration_scope",
+        "company_id.x_guest_require_nationality",
+        "company_id.x_guest_require_document",
+        "company_id.x_guest_require_birth_date",
+        "order_line.x_adults", "order_line.x_children",
+        "x_stay_guest_ids.sale_order_line_id", "x_stay_guest_ids.partner_id",
+        "x_stay_guest_ids.is_main", "x_stay_guest_ids.is_child",
+        "x_stay_guest_ids.nationality_id", "x_stay_guest_ids.document_type",
+        "x_stay_guest_ids.document_number", "x_stay_guest_ids.birth_date",
+    )
+    def _compute_x_guest_registration_issues(self):
+        for order in self:
+            order.x_guest_registration_issues = "\n".join(
+                order._x_guest_registration_issues()
+            ) or False
+
+    def _x_guest_registration_issues(self):
+        """Ce qui manque selon Paramètres > Hôtel > Enregistrement des occupants."""
+        self.ensure_one()
+        company = self.company_id
+        scope = company.x_guest_registration_scope
+        if scope == "none":
+            return []
+        issues = []
+        for line in self.order_line.filtered("x_is_a_room_offer"):
+            room = ", ".join(line.x_room_resource_ids.mapped("name")) or line.name
+            # _origin : pendant la saisie, Odoo manipule des copies temporaires.
+            guests = self.x_stay_guest_ids.filtered(
+                lambda g: g.sale_order_line_id._origin == line._origin
+            )
+            adults = guests.filtered(lambda g: not g.is_child)
+            children = guests - adults
+            if not guests.filtered("is_main"):
+                issues.append(f"Chambre {room} : aucun occupant principal.")
+            if scope in ("adults", "all") and len(adults) < line.x_adults:
+                issues.append(
+                    f"Chambre {room} : {len(adults)} adulte(s) enregistré(s) sur {line.x_adults}."
+                )
+            if scope == "all" and len(children) < line.x_children:
+                issues.append(
+                    f"Chambre {room} : {len(children)} enfant(s) enregistré(s) sur {line.x_children}."
+                )
+            checked = {
+                "main": guests.filtered("is_main"),
+                "adults": adults,
+                "all": guests,
+            }[scope]
+            for guest in checked:
+                missing = []
+                if company.x_guest_require_nationality and not guest.nationality_id:
+                    missing.append("nationalité")
+                if company.x_guest_require_document and not (
+                    guest.document_type and guest.document_number
+                ):
+                    missing.append("pièce d'identité")
+                if company.x_guest_require_birth_date and not guest.birth_date:
+                    missing.append("date de naissance")
+                if missing:
+                    issues.append(
+                        f"{guest.partner_id.name or 'Occupant'} ({room}) : "
+                        f"{', '.join(missing)} manquant(e)."
+                    )
+        return issues
+
+    def _x_prefill_main_guests(self):
+        """Client de la réservation (s'il s'agit d'une personne) proposé
+        d'office comme occupant principal de la première chambre qui n'en a pas."""
+        partner = self.partner_id
+        if not partner or partner.is_company:
+            return
+        for line in self.order_line.filtered("x_is_a_room_offer"):
+            if line.x_stay_guest_ids.filtered("is_main"):
+                continue
+            existing = line.x_stay_guest_ids.filtered(lambda g: g.partner_id == partner)
+            if existing:
+                existing.is_main = True
+            elif not self.x_stay_guest_ids.filtered(lambda g: g.partner_id == partner):
+                self.env["pos.hotel.stay.guest"].create({
+                    "sale_order_line_id": line.id,
+                    "partner_id": partner.id,
+                    "is_main": True,
+                })
+
+    def action_x_confirm_guest_registration(self):
+        """Bouton « Valider l'arrivée » : contrôle, horodatage, puis
+        l'assistant d'arrivée habituel."""
+        self.ensure_one()
+        issues = self._x_guest_registration_issues()
+        if issues:
+            if self.company_id.x_guest_registration_mode == "block":
+                raise UserError(
+                    "Arrivée impossible, enregistrement incomplet :\n- "
+                    + "\n- ".join(issues)
+                )
+            self.message_post(
+                body=Markup("Arrivée avec enregistrement incomplet :<ul>%s</ul>")
+                % Markup("").join(Markup("<li>%s</li>") % i for i in issues)
+            )
+        self.x_stay_guest_ids.filtered(
+            lambda g: not g.checkin_date
+        ).checkin_date = fields.Datetime.now()
+        return self.with_context(x_guest_registration_done=True).action_open_pickup()
 
     def action_cancel_folio_charges(self, cancel_due_debt=False,
                                      refund_settled_charges=False,
