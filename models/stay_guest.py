@@ -108,3 +108,45 @@ class PosHotelStayGuest(models.Model):
                     "La chambre %s a plusieurs occupants principaux."
                     % line.display_name
                 )
+
+    # --- Retour vers le contact ---------------------------------------
+    # L'identité saisie sur l'occupant met à jour sa fiche contact (dernières
+    # informations connues) pour préremplir le prochain séjour. Seules les
+    # valeurs renseignées sont copiées : un champ vide n'efface rien.
+    _IDENTITY_FIELDS = (
+        "nationality_id", "document_type", "document_number",
+        "document_expiry", "birth_date", "birth_place",
+    )
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        guests = super().create(vals_list)
+        guests._x_sync_partner_identity()
+        return guests
+
+    def write(self, vals):
+        res = super().write(vals)
+        if "partner_id" in vals or set(vals) & set(self._IDENTITY_FIELDS):
+            self._x_sync_partner_identity()
+        return res
+
+    def _x_sync_partner_identity(self):
+        to_booking_engine = {v: k for k, v in _BOOKING_ENGINE_DOC_TYPES.items()}
+        for guest in self:
+            partner = guest.partner_id
+            vals = {}
+            if guest.nationality_id and guest.nationality_id != partner.x_nationality:
+                vals["x_nationality"] = guest.nationality_id.id
+            doc_type = to_booking_engine.get(guest.document_type)
+            if doc_type and doc_type != partner.x_document_type:
+                vals["x_document_type"] = doc_type
+            for src, dst in (
+                ("document_number", "x_document_number"),
+                ("document_expiry", "x_document_expiry"),
+                ("birth_date", "x_birth_date"),
+                ("birth_place", "x_birth_place"),
+            ):
+                if guest[src] and guest[src] != partner[dst]:
+                    vals[dst] = guest[src]
+            if vals:
+                partner.write(vals)
