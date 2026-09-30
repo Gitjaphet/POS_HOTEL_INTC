@@ -9,8 +9,9 @@
             <t t-set="line" t-value="guest.sale_order_line_id"/>
             <div class="page">
                 <style>
-                    .x-police td { border-bottom: 1px dotted #888; height: 2.1em; vertical-align: bottom; }
-                    .x-police th { width: 34%; font-weight: 600; vertical-align: bottom; padding-right: 1em; }
+                    table.x-police, table.x-police tr, table.x-police th, table.x-police td { border: 0 !important; background: none !important; }
+                    table.x-police th { width: 30%; text-align: left !important; font-weight: 600; vertical-align: bottom; padding: .5em 1em 0 0; }
+                    table.x-police td { border-bottom: 1px dotted #888 !important; height: 2.1em; vertical-align: bottom; padding: .5em 0 0 .3em; }
                     .x-police-box { border: 1px solid #555; height: 7em; padding: .4em; }
                 </style>
                 <h3 class="text-center mb-1">FICHE DE POLICE</h3>
