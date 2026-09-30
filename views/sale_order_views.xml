@@ -5,7 +5,7 @@
     <field name="model">sale.order</field>
     <field name="inherit_id" ref="sale.view_order_form"/>
     <field name="mode">primary</field>
-    <field name="priority">999</field>
+    <field name="priority">10</field>
     <field name="arch" type="xml">
       <xpath expr="//notebook" position="inside">
         <page string="Extra Charge" name="x_extra_charge">
@@ -141,11 +141,16 @@
           <field name="x_room_removal_log_ids" nolabel="1">
             <list create="0" delete="0" edit="0">
               <field name="date"/>
+              <field name="event_type" string="Événement" widget="badge"
+                     decoration-info="event_type == 'change'"
+                     decoration-warning="event_type == 'removal'"/>
               <field name="resource_name" string="Chambre"/>
+              <field name="new_resource_name" string="Nouvelle chambre" optional="show"/>
+              <field name="pricing_mode" string="Tarif" optional="show"/>
               <field name="reason" string="Motif"/>
-              <field name="cancel_due_debt" string="Dette annulée"/>
-              <field name="due_amount_at_removal" string="Montant dû à l'époque"/>
-              <field name="user_id" string="Retiré par"/>
+              <field name="cancel_due_debt" string="Dette annulée" optional="hide"/>
+              <field name="due_amount_at_removal" string="Montant dû à l'époque" optional="hide"/>
+              <field name="user_id" string="Par"/>
             </list>
           </field>
         </page>

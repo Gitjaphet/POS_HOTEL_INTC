@@ -42,3 +42,15 @@ class ResourceResource(models.Model):
     @api.model
     def _load_pos_data_fields(self, config):
         return ["id", "name", "x_occupant_ids", "x_current_partner_id"]
+
+    @api.depends_context('hotel_show_room_type')
+    def _compute_display_name(self):
+        # « 401 (Chambre Suite) » uniquement sous le contexte
+        # hotel_show_room_type (fenêtre Changer de chambre) ; ailleurs
+        # (planning, POS, factures) le nom reste « 401 ».
+        super()._compute_display_name()
+        if self.env.context.get('hotel_show_room_type'):
+            for resource in self.filtered('role_ids'):
+                resource.display_name = "%s (%s)" % (
+                    resource.name, ", ".join(resource.role_ids.mapped('name')),
+                )

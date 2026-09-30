@@ -12,7 +12,7 @@
                 <group>
                     <field name="slot_id" options="{'no_create': True, 'no_open': True}"/>
                     <field name="current_resource_id" readonly="1"/>
-                    <field name="new_resource_id" options="{'no_create': True, 'no_open': True}"/>
+                    <field name="new_resource_id" options="{'no_create': True, 'no_open': True}" context="{'hotel_show_room_type': True}"/>
                 </group>
                 <div class="alert alert-warning" role="alert" invisible="not type_changed">
                     Changement de type de chambre : choisissez le tarif à appliquer et indiquez le motif.
