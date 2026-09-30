@@ -39,6 +39,12 @@
                         <field name="x_guest_require_travel"/>
                     </setting>
                 </block>
+                <block title="Fiche de police" name="hotel_police_card">
+                    <setting id="hotel_police_card_footer" string="Mention en bas de fiche"
+                             help="Texte imprimé sous chaque fiche de police (référence réglementaire, rappel au client…).">
+                        <field name="x_police_card_footer"/>
+                    </setting>
+                </block>
             </xpath>
         </field>
     </record>

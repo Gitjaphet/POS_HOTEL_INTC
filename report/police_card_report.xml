@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Fiche de police : une page par occupant. En-tête = société de
+         l'hôtel ; rubrique vide = ligne pointillée à remplir à la main. -->
+    <template id="report_police_card_document">
+        <t t-set="o" t-value="guest"/>
+        <t t-call="web.external_layout">
+            <t t-set="partner" t-value="guest.partner_id"/>
+            <t t-set="line" t-value="guest.sale_order_line_id"/>
+            <div class="page">
+                <style>
+                    .x-police td { border-bottom: 1px dotted #888; height: 2.1em; vertical-align: bottom; }
+                    .x-police th { width: 34%; font-weight: 600; vertical-align: bottom; padding-right: 1em; }
+                    .x-police-box { border: 1px solid #555; height: 7em; padding: .4em; }
+                </style>
+                <h3 class="text-center mb-1">FICHE DE POLICE</h3>
+                <p class="text-center text-muted mb-4">
+                    Réservation <span t-field="guest.order_id.name"/>
+                    · Chambre <t t-out="', '.join(line.x_room_resource_ids.mapped('name'))"/>
+                </p>
+                <table class="x-police w-100">
+                    <tr><th>Nom et prénoms</th><td t-out="partner.name"/></tr>
+                    <tr><th>Date et lieu de naissance</th>
+                        <td><span t-field="guest.birth_date"/><t t-if="guest.birth_place"> à <t t-out="guest.birth_place"/></t></td></tr>
+                    <tr><th>Nationalité</th><td t-out="guest.nationality_id.name or ''"/></tr>
+                    <tr><th>Profession</th><td t-out="partner.function or ''"/></tr>
+                    <tr><th>Domicile habituel</th><td t-out="partner.contact_address or ''"/></tr>
+                    <tr><th>Pièce d'identité</th>
+                        <td><span t-field="guest.document_type"/> <t t-if="guest.document_number">n° <t t-out="guest.document_number"/></t></td></tr>
+                    <tr><th>Délivrée le / à</th>
+                        <td><span t-field="guest.document_issue_date"/><t t-if="guest.document_issue_place"> à <t t-out="guest.document_issue_place"/></t></td></tr>
+                    <tr><th>Expire le</th><td><span t-field="guest.document_expiry"/></td></tr>
+                    <tr><th>Venant de</th><td t-out="guest.came_from or ''"/></tr>
+                    <tr><th>Allant à</th><td t-out="guest.going_to or ''"/></tr>
+                    <tr><th>Date d'arrivée</th><td><span t-field="line.x_room_start_date" t-options="{'widget': 'date'}"/></td></tr>
+                    <tr><th>Départ prévu</th><td><span t-field="line.x_room_return_date" t-options="{'widget': 'date'}"/></td></tr>
+                </table>
+                <div class="row mt-5">
+                    <div class="col-6"><strong>Signature du client</strong><div class="x-police-box"/></div>
+                    <div class="col-6"><strong>Visa de l'hôtel</strong><div class="x-police-box"/></div>
+                </div>
+                <p t-if="guest.company_id.x_police_card_footer" class="mt-4 small text-muted"
+                   t-out="guest.company_id.x_police_card_footer"/>
+            </div>
+        </t>
+    </template>
+
+    <template id="report_police_card_guest">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="guest">
+                <t t-call="POS_HOTEL_INTC.report_police_card_document"/>
+            </t>
+        </t>
+    </template>
+
+    <template id="report_police_card_order">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="order">
+                <t t-foreach="order.x_stay_guest_ids" t-as="guest">
+                    <t t-call="POS_HOTEL_INTC.report_police_card_document"/>
+                </t>
+            </t>
+        </t>
+    </template>
+
+    <record id="action_report_police_card_guest" model="ir.actions.report">
+        <field name="name">Fiche de police</field>
+        <field name="model">pos.hotel.stay.guest</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">POS_HOTEL_INTC.report_police_card_guest</field>
+        <field name="report_file">POS_HOTEL_INTC.report_police_card_guest</field>
+        <field name="print_report_name">'Fiche de police - %s' % object.partner_id.name</field>
+        <field name="binding_model_id" ref="model_pos_hotel_stay_guest"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <record id="action_report_police_card_order" model="ir.actions.report">
+        <field name="name">Fiches de police</field>
+        <field name="model">sale.order</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">POS_HOTEL_INTC.report_police_card_order</field>
+        <field name="report_file">POS_HOTEL_INTC.report_police_card_order</field>
+        <field name="print_report_name">'Fiches de police - %s' % object.name</field>
+        <field name="binding_model_id" ref="sale.model_sale_order"/>
+        <field name="binding_type">report</field>
+    </record>
+</odoo>

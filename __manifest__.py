@@ -25,6 +25,7 @@
         "views/res_config_settings_views.xml",
         "views/res_partner_views.xml",
         "views/sale_order_guest_registration_views.xml",
+        "report/police_card_report.xml",
         "views/sale_order_action_views.xml",
         "views/planning_gantt_color.xml",
         "views/planning_slot_form_hotel.xml",
