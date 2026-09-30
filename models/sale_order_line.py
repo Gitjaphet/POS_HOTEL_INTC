@@ -8,6 +8,10 @@ from odoo.tools import format_datetime, format_time
 class SaleOrderLine(models.Model):
     _inherit = 'sale.order.line'
 
+    x_stay_guest_ids = fields.One2many(
+        "pos.hotel.stay.guest", "sale_order_line_id", string="Occupants",
+    )
+
     x_room_resource_ids = fields.Many2many(
         'resource.resource',
         compute='_compute_x_room_resource_ids',

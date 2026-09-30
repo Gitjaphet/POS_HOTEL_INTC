@@ -4,6 +4,11 @@ from odoo import fields, models
 class ResPartner(models.Model):
     _inherit = "res.partner"
 
+    # Identité (complète x_nationality / x_document_* de booking_engine).
+    x_birth_date = fields.Date(string="Date de naissance")
+    x_birth_place = fields.Char(string="Lieu de naissance")
+    x_document_expiry = fields.Date(string="Expiration de la pièce")
+
     x_room_charge_due = fields.Monetary(
         compute="_compute_room_charge_due",
         currency_field="currency_id",

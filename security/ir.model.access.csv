@@ -17,3 +17,4 @@ access_pos_hotel_charge_add_wizard_line_user,pos.hotel.charge.add.wizard.line.us
 access_pos_hotel_charge_add_service_wizard_user,pos.hotel.charge.add.service.wizard.user,model_pos_hotel_charge_add_service_wizard,base.group_user,1,1,1,1
 access_pos_hotel_charge_add_service_wizard_line_user,pos.hotel.charge.add.service.wizard.line.user,model_pos_hotel_charge_add_service_wizard_line,base.group_user,1,1,1,1
 access_pos_hotel_change_room_wizard_user,pos.hotel.change.room.wizard.user,model_pos_hotel_change_room_wizard,base.group_user,1,1,1,1
+access_pos_hotel_stay_guest_user,pos.hotel.stay.guest.user,model_pos_hotel_stay_guest,base.group_user,1,1,1,1
