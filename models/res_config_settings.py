@@ -14,3 +14,5 @@ class ResConfigSettings(models.TransientModel):
         related="company_id.x_guest_require_document", readonly=False)
     x_guest_require_birth_date = fields.Boolean(
         related="company_id.x_guest_require_birth_date", readonly=False)
+    x_guest_require_travel = fields.Boolean(
+        related="company_id.x_guest_require_travel", readonly=False)

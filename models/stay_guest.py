@@ -69,6 +69,17 @@ class PosHotelStayGuest(models.Model):
         string="Lieu de naissance",
         compute="_compute_identity", store=True, readonly=False,
     )
+    document_issue_date = fields.Date(
+        string="Pièce délivrée le",
+        compute="_compute_identity", store=True, readonly=False,
+    )
+    document_issue_place = fields.Char(
+        string="Pièce délivrée à",
+        compute="_compute_identity", store=True, readonly=False,
+    )
+    # Propres au séjour (pas recopiés sur le contact).
+    came_from = fields.Char(string="Provenance")
+    going_to = fields.Char(string="Destination")
     checkin_date = fields.Datetime(string="Enregistré le", readonly=True)
 
     _unique_guest_per_room = models.Constraint(
@@ -99,6 +110,8 @@ class PosHotelStayGuest(models.Model):
             guest.document_expiry = partner.x_document_expiry
             guest.birth_date = partner.x_birth_date
             guest.birth_place = partner.x_birth_place
+            guest.document_issue_date = partner.x_document_issue_date
+            guest.document_issue_place = partner.x_document_issue_place
 
     @api.constrains("is_main", "sale_order_line_id")
     def _check_single_main(self):
@@ -116,6 +129,7 @@ class PosHotelStayGuest(models.Model):
     _IDENTITY_FIELDS = (
         "nationality_id", "document_type", "document_number",
         "document_expiry", "birth_date", "birth_place",
+        "document_issue_date", "document_issue_place",
     )
 
     @api.model_create_multi
@@ -145,6 +159,8 @@ class PosHotelStayGuest(models.Model):
                 ("document_expiry", "x_document_expiry"),
                 ("birth_date", "x_birth_date"),
                 ("birth_place", "x_birth_place"),
+                ("document_issue_date", "x_document_issue_date"),
+                ("document_issue_place", "x_document_issue_place"),
             ):
                 if guest[src] and guest[src] != partner[dst]:
                     vals[dst] = guest[src]

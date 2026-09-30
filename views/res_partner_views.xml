@@ -8,6 +8,8 @@
         <field name="arch" type="xml">
             <xpath expr="//field[@name='x_document_number']" position="after">
                 <field name="x_document_expiry" invisible="is_company"/>
+                <field name="x_document_issue_date" invisible="is_company"/>
+                <field name="x_document_issue_place" invisible="is_company"/>
                 <field name="x_birth_date" invisible="is_company"/>
                 <field name="x_birth_place" invisible="is_company"/>
             </xpath>

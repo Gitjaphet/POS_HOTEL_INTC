@@ -24,6 +24,10 @@
                         <field name="document_type"/>
                         <field name="document_number"/>
                         <field name="document_expiry" optional="hide"/>
+                  <field name="document_issue_date" optional="hide"/>
+                  <field name="document_issue_place" optional="hide"/>
+                  <field name="came_from" optional="show"/>
+                  <field name="going_to" optional="show"/>
                         <field name="birth_date" optional="show"/>
                         <field name="birth_place" optional="hide"/>
                     </list>

@@ -22,6 +22,7 @@ class ResCompany(models.Model):
     x_guest_require_nationality = fields.Boolean(string="Nationalité obligatoire")
     x_guest_require_document = fields.Boolean(string="Pièce d'identité obligatoire")
     x_guest_require_birth_date = fields.Boolean(string="Date de naissance obligatoire")
+    x_guest_require_travel = fields.Boolean(string="Provenance / destination obligatoires")
 
     def _create_hotel_pos_payment_methods(self):
         for company in self:

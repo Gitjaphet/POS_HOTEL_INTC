@@ -8,6 +8,8 @@ class ResPartner(models.Model):
     x_birth_date = fields.Date(string="Date de naissance")
     x_birth_place = fields.Char(string="Lieu de naissance")
     x_document_expiry = fields.Date(string="Expiration de la pièce")
+    x_document_issue_date = fields.Date(string="Pièce délivrée le")
+    x_document_issue_place = fields.Char(string="Pièce délivrée à")
 
     x_room_charge_due = fields.Monetary(
         compute="_compute_room_charge_due",

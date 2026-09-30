@@ -256,6 +256,8 @@ class SaleOrder(models.Model):
         "x_stay_guest_ids.is_main", "x_stay_guest_ids.is_child",
         "x_stay_guest_ids.nationality_id", "x_stay_guest_ids.document_type",
         "x_stay_guest_ids.document_number", "x_stay_guest_ids.birth_date",
+        "company_id.x_guest_require_travel",
+        "x_stay_guest_ids.came_from", "x_stay_guest_ids.going_to",
     )
     def _compute_x_guest_registration_issues(self):
         for order in self:
@@ -304,6 +306,10 @@ class SaleOrder(models.Model):
                     missing.append("pièce d'identité")
                 if company.x_guest_require_birth_date and not guest.birth_date:
                     missing.append("date de naissance")
+                if company.x_guest_require_travel and not (
+                    guest.came_from and guest.going_to
+                ):
+                    missing.append("provenance/destination")
                 if missing:
                     issues.append(
                         f"{guest.partner_id.name or 'Occupant'} ({room}) : "

@@ -33,6 +33,11 @@
                              invisible="x_guest_registration_scope == 'none'">
                         <field name="x_guest_require_birth_date"/>
                     </setting>
+                    <setting id="hotel_guest_require_travel"
+                             help="D'où vient l'occupant et où il se rend ensuite."
+                             invisible="x_guest_registration_scope == 'none'">
+                        <field name="x_guest_require_travel"/>
+                    </setting>
                 </block>
             </xpath>
         </field>
