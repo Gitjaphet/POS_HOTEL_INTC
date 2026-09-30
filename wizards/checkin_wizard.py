@@ -77,6 +77,10 @@ class PosHotelCheckinWizard(models.TransientModel):
                     "x_checked_out_at": now,
                 })
                 slot.sale_line_id.update({"qty_returned": slot.sale_line_id.qty_returned + 1})
+        if self.status == "checkin":
+            self.order_id._x_on_rooms_checked_in(
+                selected.planning_slot_id.sale_line_id
+            )
         return {"type": "ir.actions.act_window_close"}
 
 

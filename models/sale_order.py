@@ -341,14 +341,24 @@ class SaleOrder(models.Model):
                     "Arrivée impossible, enregistrement incomplet :\n- "
                     + "\n- ".join(issues)
                 )
+        # Note et horodatage : à la confirmation réelle de l'arrivée
+        # (assistant d'arrivée), pas ici : l'utilisateur peut encore annuler.
+        return self.with_context(x_guest_registration_done=True).action_open_pickup()
+
+    def _x_on_rooms_checked_in(self, sale_lines):
+        """Appelé par l'assistant d'arrivée une fois l'arrivée confirmée :
+        horodate les occupants des chambres arrivées et trace un
+        enregistrement incomplet (mode Avertir)."""
+        self.ensure_one()
+        self.x_stay_guest_ids.filtered(
+            lambda g: g.sale_order_line_id in sale_lines and not g.checkin_date
+        ).checkin_date = fields.Datetime.now()
+        issues = self._x_guest_registration_issues()
+        if issues:
             self.message_post(
                 body=Markup("Arrivée avec enregistrement incomplet :<ul>%s</ul>")
                 % Markup("").join(Markup("<li>%s</li>") % i for i in issues)
             )
-        self.x_stay_guest_ids.filtered(
-            lambda g: not g.checkin_date
-        ).checkin_date = fields.Datetime.now()
-        return self.with_context(x_guest_registration_done=True).action_open_pickup()
 
     def action_cancel_folio_charges(self, cancel_due_debt=False,
                                      refund_settled_charges=False,
