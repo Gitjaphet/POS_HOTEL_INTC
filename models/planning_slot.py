@@ -168,12 +168,25 @@ class PlanningSlot(models.Model):
         ).unlink()
         return True
 
-    def action_delete_hotel_draft(self):
-        """Bouton « Supprimer » de la fenêtre du planning : retire un créneau
-        chambre gris (brouillon abandonné, sans commande) puis ferme la fenêtre.
-        """
-        self.action_discard_hotel_draft()
-        return {"type": "ir.actions.act_window_close"}
+
+    def unlink(self):
+        # Planning hôtel : une chambre rattachée à une réservation ne se
+        # supprime pas d'un clic (corbeille / croix de l'aperçu). On passe par
+        # « Retirer une chambre » ou « Annuler » dans la commande, qui tracent
+        # l'historique. Les créneaux gris (sans commande) restent supprimables.
+        if self.env.context.get('hotel_planning'):
+            booked = self.filtered(
+                lambda s: s.sale_line_id and s.role_id.x_is_a_room_offer
+            )
+            if booked:
+                slot = booked[0]
+                raise UserError(
+                    "La chambre %s appartient à la réservation %s.\n"
+                    "Pour la libérer, ouvrez la fiche et utilisez "
+                    "« Retirer une chambre » (⊖) ou « Annuler »."
+                    % (slot.resource_id.name, slot.sale_line_id.order_id.name)
+                )
+        return super().unlink()
 
     def write(self, vals):
         # Changement de chambre vers un autre type (glisser-déposer, édition) :
