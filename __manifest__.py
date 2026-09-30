@@ -22,6 +22,7 @@
         "wizards/charge_add_wizard_views.xml",
         "wizards/charge_add_service_wizard_views.xml",
         "views/sale_order_views.xml",
+        "views/res_config_settings_views.xml",
         "views/sale_order_action_views.xml",
         "views/planning_gantt_color.xml",
         "views/planning_slot_form_hotel.xml",
