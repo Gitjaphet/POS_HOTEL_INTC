@@ -50,7 +50,7 @@ class ResourceResource(models.Model):
         # (planning, POS, factures) le nom reste « 401 ».
         super()._compute_display_name()
         if self.env.context.get('hotel_show_room_type'):
+            # Même type que le planning : type par défaut, sinon le premier.
             for resource in self.filtered('role_ids'):
-                resource.display_name = "%s (%s)" % (
-                    resource.name, ", ".join(resource.role_ids.mapped('name')),
-                )
+                role = resource.sudo().default_role_id or resource.role_ids[:1]
+                resource.display_name = "%s (%s)" % (resource.name, role.name)
