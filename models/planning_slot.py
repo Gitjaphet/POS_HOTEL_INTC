@@ -168,6 +168,13 @@ class PlanningSlot(models.Model):
         ).unlink()
         return True
 
+    def action_delete_hotel_draft(self):
+        """Bouton « Supprimer » de la fenêtre du planning : retire un créneau
+        chambre gris (brouillon abandonné, sans commande) puis ferme la fenêtre.
+        """
+        self.action_discard_hotel_draft()
+        return {"type": "ir.actions.act_window_close"}
+
     def write(self, vals):
         # Changement de chambre vers un autre type (glisser-déposer, édition) :
         # refusé ici, avant écriture. Le changement de type passe par l'action

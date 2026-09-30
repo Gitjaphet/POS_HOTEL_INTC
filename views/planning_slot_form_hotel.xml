@@ -61,6 +61,13 @@
                        <field name="x_adults" invisible="not (context.get('hotel_planning') or role_sync_shift_rental)"/>
                        <field name="x_children" invisible="not (context.get('hotel_planning') or role_sync_shift_rental)"/>
             </xpath>
+            <!-- Créneau gris (enregistré, sans commande) : bouton de suppression. -->
+            <xpath expr="(//footer)[1]" position="inside">
+                <button name="action_delete_hotel_draft" type="object"
+                        string="Supprimer" class="btn btn-danger"
+                        confirm="Supprimer ce créneau sans réservation ? La chambre sera libérée."
+                        invisible="not id or sale_line_id or not (context.get('hotel_planning') or role_sync_shift_rental)"/>
+            </xpath>
             <!-- Seule action de création côté hôtel : visible même avant le choix
                  de la chambre, en bouton principal (violet). -->
             <xpath expr="//button[@name='action_create_order']" position="attributes">
