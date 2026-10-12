@@ -1,6 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+  <!-- Action Réservation(s) > Réservations : vue formulaire hôtel + clé de contexte
+       hotel_booking_labels (libellés hôteliers de rental_status, sans impacter Location). -->
   <record id="booking_engine.booking_engine_rooms_order_action" model="ir.actions.act_window">
+    <field name="name">Reservations</field>
     <field name="view_id" ref="sale_order_primary_view_pos_hotel_intc"/>
+    <field name="context">{'search_default_filter_today': 1, 'in_rental_app': 1, 'search_default_from_rental': 1, 'group_by': ['rental_status'], 'hotel_booking_labels': True}</field>
   </record>
+
+  <!-- Menu « Commandes » renommé en « Réservations » (terme standard PMS). -->
+  <record id="booking_engine.booking_engine_orders_menu" model="ir.ui.menu">
+    <field name="name">Reservations</field>
+  </record>
+
+  <!-- La traduction FR existante de booking_engine (« Commandes ») primerait sur le nom de base :
+       on la remplace explicitement. -->
+  <function model="ir.actions.act_window" name="update_field_translations"
+            eval="[ref('booking_engine.booking_engine_rooms_order_action'), 'name', {'fr_FR': 'Réservations'}]"/>
+  <function model="ir.ui.menu" name="update_field_translations"
+            eval="[ref('booking_engine.booking_engine_orders_menu'), 'name', {'fr_FR': 'Réservations'}]"/>
 </odoo>
