@@ -1,4 +1,9 @@
+import logging
+
 from odoo import api, fields, models
+from odoo.exceptions import UserError, ValidationError
+
+_logger = logging.getLogger(__name__)
 
 
 class PosPaymentMethod(models.Model):
@@ -60,10 +65,20 @@ class PosPaymentMethod(models.Model):
         configs_missing = configs.filtered(
             lambda c: payment_method not in c.payment_method_ids
         )
-        if configs_missing:
-            configs_missing.write({
-                "payment_method_ids": [(4, payment_method.id)],
-            })
+        # PdV par PdV : une config client invalide (ex. mode espèces partagé
+        # entre deux PdV) ne doit pas faire échouer toute l'installation.
+        for config in configs_missing:
+            try:
+                with self.env.cr.savepoint():
+                    config.write({
+                        "payment_method_ids": [(4, payment_method.id)],
+                    })
+            except (ValidationError, UserError) as e:
+                _logger.warning(
+                    "POS_HOTEL_INTC : impossible d'ajouter '%s' au PdV '%s' (id %s) : %s "
+                    "— corriger la configuration du PdV puis ajouter le mode manuellement.",
+                    payment_method.name, config.name, config.id, e,
+                )
 
         return payment_method
 
@@ -81,7 +96,6 @@ class PosPaymentMethod(models.Model):
                 "company_ids": [(6, 0, [company.id])],
             })
         return account
-
 
     @api.model
     def _ensure_service_charge_account(self, company):
