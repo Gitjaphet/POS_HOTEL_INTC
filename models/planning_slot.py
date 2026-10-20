@@ -168,6 +168,15 @@ class PlanningSlot(models.Model):
         ).unlink()
         return True
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        slots = super().create(vals_list)
+        # Statut d'occupation : un créneau qui naît déjà enregistré (retrait /
+        # remplacement de chambre qui recrée le séjour) occupe sa chambre.
+        slots.filtered(
+            lambda s: s.x_stay_status == 'checked_in'
+        ).resource_id._sync_occupancy_from_slots()
+        return slots
 
     def unlink(self):
         # Planning hôtel : une chambre rattachée à une réservation ne se
@@ -186,7 +195,12 @@ class PlanningSlot(models.Model):
                     "« Retirer une chambre » (⊖) ou « Annuler »."
                     % (slot.resource_id.name, slot.sale_line_id.order_id.name)
                 )
-        return super().unlink()
+        # Statut d'occupation : les chambres sont notées AVANT la suppression
+        # (annulation, retrait), puis recalculées une fois les créneaux partis.
+        rooms = self.resource_id
+        res = super().unlink()
+        rooms.exists()._sync_occupancy_from_slots()
+        return res
 
     def write(self, vals):
         # Changement de chambre vers un autre type (glisser-déposer, édition) :
@@ -194,6 +208,10 @@ class PlanningSlot(models.Model):
         # « Changer de chambre » (contexte x_room_type_change).
         if 'resource_id' in vals and not self.env.context.get('x_room_type_change'):
             self._x_check_room_type(vals['resource_id'])
+        # Statut d'occupation : l'ancienne chambre est capturée AVANT écriture,
+        # sinon un changement de chambre ne la libérerait jamais.
+        occupancy_impact = {'resource_id', 'x_stay_status', 'end_datetime'} & set(vals)
+        old_rooms = self.resource_id if occupancy_impact else self.env['resource.resource']
         res = super().write(vals)
         # Planning → commande : une barre de chambre déplacée ou étirée à la
         # souris met à jour les dates de sa ligne (nuits et prix). Les
@@ -218,6 +236,8 @@ class PlanningSlot(models.Model):
             ).sale_line_id
             if lines:
                 self.env.add_to_compute(self.env['sale.order.line']._fields['name'], lines)
+        if occupancy_impact:
+            (old_rooms | self.resource_id)._sync_occupancy_from_slots()
         return res
 
     def _x_check_room_type(self, resource_id):
@@ -291,7 +311,7 @@ class PlanningSlot(models.Model):
         :param period_stop: fin de la période affichée
         :return: dict de compteurs, consommé par le patch JS de PlanningGanttRenderer
         """
-        
+
         # reference_date permet de projeter les compteurs sur une autre date
         # (test, ou future sélection de date dans le planning) ; par défaut
         # c'est le jour courant dans le fuseau de l'utilisateur.

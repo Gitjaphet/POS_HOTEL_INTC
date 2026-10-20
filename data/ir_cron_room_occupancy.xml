@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Filet de sécurité : resynchronise chaque nuit le statut
+             d'occupation (x_occupancy) de toutes les chambres depuis les
+             créneaux. Tourne à 01:00 UTC, après la tâche de minuit de
+             booking_engine (00:00 UTC), pour avoir le dernier mot. -->
+        <record id="ir_cron_sync_room_occupancy" model="ir.cron">
+            <field name="name">Hôtel : resynchronisation du statut des chambres</field>
+            <field name="model_id" ref="resource.model_resource_resource"/>
+            <field name="state">code</field>
+            <field name="code">model.search(model._get_room_resource_domain())._sync_occupancy_from_slots()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="nextcall" eval="(DateTime.now() + timedelta(days=1)).strftime('%Y-%m-%d 01:00:00')"/>
+            <field name="active" eval="True"/>
+        </record>
+    </data>
+</odoo>

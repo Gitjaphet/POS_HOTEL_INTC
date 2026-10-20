@@ -7,6 +7,8 @@ def post_init_hook(env):
     _fix_room_calendars(env)
     _fix_booking_engine_order_form_view(env)
     _disable_room_hours_automation(env)
+    _disable_room_occupancy_automation(env)
+    _sync_all_room_occupancy(env)
 
 
 def _fix_room_calendars(env):
@@ -68,3 +70,51 @@ def _disable_room_hours_automation(env):
                     action.write({"code": marker + code})
                 if rule.active:
                     rule.write({"active": False})
+
+
+def _disable_room_occupancy_automation(env):
+    """Désactive les automatisations booking_engine "Ménage : lors de
+    l'enregistrement" / "Ménage : lors du départ" (base.automation sur
+    sale.order, déclenchées par rental_status).
+
+    CONFLIT AVEC POS_HOTEL_INTC : elles écrivaient x_occupancy sur TOUTES les
+    chambres d'une commande selon l'état global de celle-ci — un seul
+    check-in marquait toutes les chambres « Occupé », une chambre partie
+    restait « Occupé » tant que la commande entière n'était pas rendue, et
+    une annulation (créneaux supprimés) ne libérait jamais rien. Le statut
+    est désormais calculé chambre par chambre depuis planning.slot
+    .x_stay_status par resource.resource._sync_occupancy_from_slots()
+    (investigation du 20/10/2026).
+
+    Repérage par signature (modèle sale.order + code écrivant x_occupancy),
+    jamais par ID : l'ID varie d'une base à l'autre.
+    """
+    rules = env["base.automation"].with_context(active_test=False).search([
+        ("model_name", "=", "sale.order"),
+    ])
+    for rule in rules:
+        for action in rule.action_server_ids:
+            code = action.code or ""
+            if "x_occupancy" in code:
+                if "DÉSACTIVÉ AUTOMATIQUEMENT PAR LE MODULE" not in code:
+                    marker = (
+                        "# ⚠️ DÉSACTIVÉ AUTOMATIQUEMENT PAR LE MODULE POS_HOTEL_INTC.\n"
+                        "# Cette action écrivait x_occupancy sur toutes les chambres d'une\n"
+                        "# commande selon son rental_status global (statuts faux en\n"
+                        "# multi-chambres, jamais libérés à l'annulation). Remplacée par\n"
+                        "# resource.resource._sync_occupancy_from_slots(), chambre par chambre\n"
+                        "# (investigation du 20/10/2026).\n"
+                        "# Règle désactivée (active=False) par hooks.py::_disable_room_occupancy_automation.\n"
+                        "# Code laissé ci-dessous pour référence uniquement, jamais exécuté.\n\n"
+                    )
+                    action.write({"code": marker + code})
+                if rule.active:
+                    rule.write({"active": False})
+
+
+def _sync_all_room_occupancy(env):
+    """Recalcule le statut d'occupation de toutes les chambres depuis les
+    créneaux. Rattrape les statuts faux hérités des automatisations
+    désactivées ci-dessus — à appeler APRÈS _disable_room_occupancy_automation."""
+    Resource = env["resource.resource"]
+    Resource.search(Resource._get_room_resource_domain())._sync_occupancy_from_slots()

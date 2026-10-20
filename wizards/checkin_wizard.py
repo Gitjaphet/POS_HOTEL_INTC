@@ -81,6 +81,12 @@ class PosHotelCheckinWizard(models.TransientModel):
             self.order_id._x_on_rooms_checked_in(
                 selected.planning_slot_id.sale_line_id
             )
+        # Statut d'occupation des chambres : piloté par nos créneaux, chambre
+        # par chambre. flush_all() d'abord : les recalculs en attente
+        # (rental_status et les automatisations booking_engine qui en
+        # dépendent) passent AVANT, notre synchro a toujours le dernier mot.
+        self.env.flush_all()
+        selected.planning_slot_id.resource_id._sync_occupancy_from_slots()
         return {"type": "ir.actions.act_window_close"}
 
 

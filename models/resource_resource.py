@@ -1,3 +1,5 @@
+import pytz
+
 from odoo import api, fields, models
 
 
@@ -34,6 +36,54 @@ class ResourceResource(models.Model):
         divergentes dans le module.
         """
         return [("default_role_id.x_is_a_room_offer", "=", True)]
+
+    def _sync_occupancy_from_slots(self):
+        """Recalcule x_occupancy (champ booking_engine) depuis nos créneaux.
+
+        Source de vérité : planning.slot.x_stay_status, chambre par chambre —
+        jamais l'état global de la commande (rental_status), qui marquait
+        toutes les chambres d'une commande d'un coup.
+
+        - créneau checked_in, départ après aujourd'hui -> occupied
+          (stayover conservé s'il a été posé par la tâche de minuit)
+        - créneau checked_in, départ aujourd'hui ou dépassé -> due_out
+          (un check-out oublié reste visible, jamais libéré en silence)
+        - aucun créneau checked_in -> vacant
+
+        Le jour s'évalue dans le fuseau de la chambre, pas en UTC.
+        N'écrit que si la valeur change (idempotent, évite les conflits
+        de mise à jour concurrente).
+        """
+        rooms = self.filtered_domain(self._get_room_resource_domain())
+        if not rooms:
+            return
+        now = fields.Datetime.now()
+        slots = self.env["planning.slot"].sudo().search([
+            ("resource_id", "in", rooms.ids),
+            ("x_stay_status", "=", "checked_in"),
+            ("start_datetime", "<=", now),
+        ], order="start_datetime desc")
+        for room in rooms:
+            slot = slots.filtered(lambda s: s.resource_id == room)[:1]
+            if not slot:
+                target = "vacant"
+            else:
+                tz = pytz.timezone(room.tz or "UTC")
+                today = pytz.utc.localize(now).astimezone(tz).date()
+                end_day = (
+                    slot.end_datetime
+                    and pytz.utc.localize(slot.end_datetime).astimezone(tz).date()
+                )
+                if end_day and end_day > today:
+                    target = (
+                        room.x_occupancy
+                        if room.x_occupancy in ("occupied", "stayover")
+                        else "occupied"
+                    )
+                else:
+                    target = "due_out"
+            if room.x_occupancy != target:
+                room.sudo().x_occupancy = target
 
     @api.model
     def _load_pos_data_domain(self, data, config):
