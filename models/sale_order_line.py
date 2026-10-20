@@ -195,6 +195,29 @@ class SaleOrderLine(models.Model):
                 'x_room_return_date': line.return_date,
             })
 
+        # Sens inverse : ligne née AVEC sa propre période (brouillon ouvert
+        # depuis le Planning puis dates changées avant enregistrement, wizard,
+        # import). Seul write() poussait x_room_* vers la commande et vers le
+        # créneau déjà rattaché (planning_slot_ids posé par action_create_order
+        # natif) : le créneau gardait les dates du clic Planning et la chambre
+        # apparaissait libre les nuits suivantes (S00152, 20/10/2026). On
+        # repasse par write() pour réutiliser exactement la même mécanique.
+        for line in room_lines.filtered(
+            lambda sol: sol.x_room_start_date and sol.x_room_return_date and (
+                sol.x_room_start_date != sol.start_date
+                or sol.x_room_return_date != sol.return_date
+                or any(
+                    slot.start_datetime != sol.x_room_start_date
+                    or slot.end_datetime != sol.x_room_return_date
+                    for slot in sol.planning_slot_ids
+                )
+            )
+        ):
+            line.write({
+                'x_room_start_date': line.x_room_start_date,
+                'x_room_return_date': line.x_room_return_date,
+            })
+
         # La période est désormais établie pour TOUTE ligne chambre — qu'elle
         # vienne d'être reprise ci-dessus ou qu'elle ait été fournie à la
         # création (wizard, import). Le prix et le libellé en dérivent.
@@ -231,7 +254,9 @@ class SaleOrderLine(models.Model):
         ):
             lines_to_sync_dates = self.filtered(
                 lambda sol: sol.is_rental and sol.x_is_a_room_offer
-                and sol.order_id.state == 'sale' and sol.planning_slot_ids
+                # Pas seulement 'sale' : un brouillon créé depuis le Planning a
+                # déjà son créneau, qui doit suivre les dates dès le devis.
+                and sol.order_id.state != 'cancel' and sol.planning_slot_ids
             )
 
         lines_to_notify_occupancy = self.env['sale.order.line']
