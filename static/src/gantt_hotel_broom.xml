@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
-    <!-- Balai après l'avatar de la chambre. Inséré APRÈS le t-else : entre
-         <Avatar t-if> et <Material t-elif>, il casserait la chaîne t-if. -->
+    <!-- Balai AVANT l'avatar de la chambre : le conteneur parent coupe la fin
+         du texte (text-truncate), un balai placé après le nom disparaissait
+         dès que la colonne était étroite. Insérer avant <Avatar t-if> ne
+         casse pas la chaîne t-if / t-elif / t-else, qui commence à l'Avatar. -->
     <t t-inherit="planning.PlanningGanttRenderer.RowHeader" t-inherit-mode="extension">
-        <xpath expr="//t[@t-else][@t-esc='row.name']" position="after">
+        <xpath expr="//Avatar" position="before">
             <t t-set="hotelBroom" t-value="getHotelBroom(row)"/>
             <span t-if="hotelBroom"
-                  t-attf-class="o_hotel_broom badge rounded-pill ms-auto me-1 {{ hotelBroom === 'dirty' ? 'text-bg-danger' : 'text-bg-success' }}"
+                  t-attf-class="o_hotel_broom badge rounded-pill me-1 {{ hotelBroom === 'dirty' ? 'text-bg-danger' : 'text-bg-success' }}"
                   t-att-style="hotelBroom === 'dirty' ? 'cursor: pointer' : ''"
                   t-att-title="hotelBroom === 'dirty' ? 'À nettoyer : cliquer quand la chambre est propre' : 'Chambre propre et prête'"
                   t-on-click.stop.prevent="() => this.onHotelBroomClick(row)">🧹</span>

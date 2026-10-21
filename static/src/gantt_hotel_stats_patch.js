@@ -7,7 +7,6 @@ import { onWillStart, onWillUpdateProps, useState, useRef, useEffect } from "@od
 patch(PlanningGanttRenderer.prototype, {
     setup() {
         super.setup();
-        console.log("[HOTEL] setup patché exécuté");
         this.orm = useService("orm");
         this.hotelAction = useService("action");
         this.hotelStats = useState({ data: null, height: 0 });
@@ -15,7 +14,7 @@ patch(PlanningGanttRenderer.prototype, {
         if (this.isHotelPlanning) {
             onWillStart(() => this.loadHotelStats());
             onWillUpdateProps(() => this.loadHotelStats());
-                        // Hauteur réelle du bloc (varie : retour à la ligne, mobile) →
+            // Hauteur réelle du bloc (varie : retour à la ligne, mobile) →
             // relue par getGridStyle() pour décaler les en-têtes sticky.
             this.hotelStatsRef = useRef("hotelStats");
             useEffect(
@@ -34,9 +33,11 @@ patch(PlanningGanttRenderer.prototype, {
         }
     },
 
+    // Garde d'isolation : seul le planning hôtel (vue Gantt de booking_engine
+    // qui déclare le champ témoin x_stay_status) reçoit les ajouts hôtel ;
+    // un planning d'employés ordinaire n'est jamais touché.
     get isHotelPlanning() {
         const fields = this.model.metaData.decorationFields || [];
-        console.log("[HOTEL] decorationFields =", fields);
         return fields.includes("x_stay_status");
     },
 
@@ -67,7 +68,6 @@ patch(PlanningGanttRenderer.prototype, {
         return props;
     },
 
-
     // Le bloc est frère de la grille, pas enfant : il n'hérite pas de
     // --Gantt__RowHeader-width. On la lui repasse pour aligner la colonne
     // du logo sur celle des chambres.
@@ -82,7 +82,7 @@ patch(PlanningGanttRenderer.prototype, {
     },
 
     async loadHotelStats() {
-        console.log("[HOTEL] loadHotelStats appelé");
+        // Anti-course : une réponse plus ancienne n'écrase jamais la dernière.
         const seq = ++this._hotelStatsSeq;
         const { startDate, stopDate } = this.model.metaData;
         let stats;
@@ -101,10 +101,9 @@ patch(PlanningGanttRenderer.prototype, {
                 }
             );
         } catch (e) {
-            console.error("[HOTEL] échec RPC", e);
+            console.error("POS_HOTEL_INTC : échec du chargement des compteurs du planning", e);
             return;
         }
-        console.log("[HOTEL] stats reçues", stats);
         if (seq === this._hotelStatsSeq) {
             this.hotelStats.data = stats;
         }
