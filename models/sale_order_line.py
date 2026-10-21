@@ -281,6 +281,7 @@ class SaleOrderLine(models.Model):
                 for order in room_lines_needing_sync.order_id:
                     room_lines = order.order_line.filtered(
                         lambda sol: sol.x_is_a_room_offer
+                        and sol.product_uom_qty > 0
                         and sol.x_room_start_date and sol.x_room_return_date
                     )
                     if not room_lines:
