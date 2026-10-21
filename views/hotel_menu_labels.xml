@@ -38,4 +38,20 @@
         <field name="name">Room Features</field>
         <field name="action" ref="action_room_features"/>
     </record>
+
+    <!-- Liste des chambres : en-têtes de colonnes hôteliers, dans cette
+         liste uniquement (les libellés des champs ne changent pas ailleurs). -->
+    <record id="booking_engine_resource_list_hotel_labels" model="ir.ui.view">
+        <field name="name">resource.resource.list.hotel.labels</field>
+        <field name="model">resource.resource</field>
+        <field name="inherit_id" ref="booking_engine.booking_engine_resource_list"/>
+        <field name="arch" type="xml">
+            <field name="role_ids" position="attributes">
+                <attribute name="string">Accepted Room Types</attribute>
+            </field>
+            <field name="default_role_id" position="attributes">
+                <attribute name="string">Main Room Type</attribute>
+            </field>
+        </field>
+    </record>
 </odoo>

@@ -9,6 +9,7 @@ def post_init_hook(env):
     _disable_room_hours_automation(env)
     _disable_room_occupancy_automation(env)
     _sync_all_room_occupancy(env)
+    _fix_ongoing_task_compute(env)
     _apply_hotel_labels(env)
 
 
@@ -119,6 +120,41 @@ def _sync_all_room_occupancy(env):
     désactivées ci-dessus — à appeler APRÈS _disable_room_occupancy_automation."""
     Resource = env["resource.resource"]
     Resource.search(Resource._get_room_resource_domain())._sync_occupancy_from_slots()
+
+
+ONGOING_TASK_MARKER = "MODIFIÉ PAR POS_HOTEL_INTC"
+ONGOING_TASK_COMPUTE = (
+    "# MODIFIÉ PAR POS_HOTEL_INTC (21/10/2026) : la tâche en cours est le\n"
+    "# ménage le PLUS RÉCENT de la chambre, même déjà « Prêt ». La formule\n"
+    "# d'origine gardait la plus ANCIENNE tâche non terminée : la fiche chambre\n"
+    "# ouvrait un ménage de plusieurs semaines et « Étape de ménage » modifiait\n"
+    "# ce vieux ménage au lieu de celui du jour.\n"
+    "for record in self:\n"
+    "    record['x_ongoing_task_id'] = record.x_task_ids.sorted('id')[-1:].id or False\n"
+)
+
+
+def _fix_ongoing_task_compute(env):
+    """Remplace la formule de booking_engine du champ calculé
+    resource.resource.x_ongoing_task_id (« Tâche en cours »).
+
+    Repérage par signature (formule contenant is_closed) et marqueur
+    idempotent ; puis recalcul immédiat de toutes les chambres (Étape de
+    ménage, related stocké, suit automatiquement).
+    """
+    field = env["ir.model.fields"].search([
+        ("model", "=", "resource.resource"),
+        ("name", "=", "x_ongoing_task_id"),
+    ], limit=1)
+    if not field or ONGOING_TASK_MARKER in (field.compute or ""):
+        return
+    if "is_closed" not in (field.compute or ""):
+        return  # formule inconnue : on ne touche à rien
+    field.write({"compute": ONGOING_TASK_COMPUTE})
+    Resource = env["resource.resource"]
+    rooms = Resource.search([("x_task_ids", "!=", False)])
+    env.add_to_compute(Resource._fields["x_ongoing_task_id"], rooms)
+    env.flush_all()
 
 
 def _apply_hotel_labels(env):

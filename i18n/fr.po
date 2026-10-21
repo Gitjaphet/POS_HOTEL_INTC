@@ -33,3 +33,13 @@ msgstr "Équipements"
 #: model:ir.ui.menu,name:booking_engine.booking_engine_rooms_leaves_menu
 msgid "Room Closures"
 msgstr "Fermetures de chambres"
+
+#. module: POS_HOTEL_INTC
+#: model_terms:ir.ui.view,arch_db:POS_HOTEL_INTC.booking_engine_resource_list_hotel_labels
+msgid "Accepted Room Types"
+msgstr "Types acceptés"
+
+#. module: POS_HOTEL_INTC
+#: model_terms:ir.ui.view,arch_db:POS_HOTEL_INTC.booking_engine_resource_list_hotel_labels
+msgid "Main Room Type"
+msgstr "Type principal"
