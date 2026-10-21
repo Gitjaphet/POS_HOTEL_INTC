@@ -1,0 +1,35 @@
+# Traduction française de POS_HOTEL_INTC
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Language: fr\n"
+
+#. module: POS_HOTEL_INTC
+#: model:ir.ui.menu,name:booking_engine.booking_engine_rooms_stay_offers_menu
+msgid "Accommodation"
+msgstr "Hébergement"
+
+#. module: POS_HOTEL_INTC
+#: model:ir.actions.act_window,name:booking_engine.booking_engine_rooms_offers_action
+#: model:ir.ui.menu,name:booking_engine.booking_engine_rooms_offers_menu
+msgid "Room Types"
+msgstr "Types de chambre"
+
+#. module: POS_HOTEL_INTC
+#: model:ir.actions.act_window,name:booking_engine.booking_engine_rooms_resources_action
+#: model:ir.ui.menu,name:booking_engine.booking_engine_rooms_resources_menu
+msgid "Rooms"
+msgstr "Chambres"
+
+#. module: POS_HOTEL_INTC
+#: model:ir.actions.act_window,name:POS_HOTEL_INTC.action_room_features
+#: model:ir.ui.menu,name:booking_engine.booking_engine_rooms_attributes_menu
+msgid "Room Features"
+msgstr "Équipements"
+
+#. module: POS_HOTEL_INTC
+#: model:ir.actions.act_window,name:booking_engine.booking_engine_resource_calendar_leaves_action
+#: model:ir.ui.menu,name:booking_engine.booking_engine_rooms_leaves_menu
+msgid "Room Closures"
+msgstr "Fermetures de chambres"

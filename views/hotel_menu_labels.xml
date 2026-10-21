@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Vocabulaire hôtelier pour les menus génériques de booking_engine
+         (location, salles, véhicules...), dans l'application Réservation(s)
+         uniquement. Noms anglais ici, traduction française dans i18n/fr.po. -->
+    <record id="booking_engine.booking_engine_rooms_stay_offers_menu" model="ir.ui.menu">
+        <field name="name">Accommodation</field>
+    </record>
+    <record id="booking_engine.booking_engine_rooms_offers_menu" model="ir.ui.menu">
+        <field name="name">Room Types</field>
+    </record>
+    <record id="booking_engine.booking_engine_rooms_offers_action" model="ir.actions.act_window">
+        <field name="name">Room Types</field>
+    </record>
+    <record id="booking_engine.booking_engine_rooms_resources_menu" model="ir.ui.menu">
+        <field name="name">Rooms</field>
+    </record>
+    <record id="booking_engine.booking_engine_rooms_resources_action" model="ir.actions.act_window">
+        <field name="name">Rooms</field>
+    </record>
+    <record id="booking_engine.booking_engine_rooms_leaves_menu" model="ir.ui.menu">
+        <field name="name">Room Closures</field>
+    </record>
+    <record id="booking_engine.booking_engine_resource_calendar_leaves_action" model="ir.actions.act_window">
+        <field name="name">Room Closures</field>
+    </record>
+
+    <!-- Équipements : l'action native product.attribute_action est partagée
+         avec Ventes et Inventaire (« Attributs »). On ne la renomme pas : on
+         crée une action dédiée, sur les mêmes données, et SEUL le menu de
+         Réservation(s) pointe vers elle. -->
+    <record id="action_room_features" model="ir.actions.act_window">
+        <field name="name">Room Features</field>
+        <field name="res_model">product.attribute</field>
+        <field name="view_mode">list,form</field>
+    </record>
+    <record id="booking_engine.booking_engine_rooms_attributes_menu" model="ir.ui.menu">
+        <field name="name">Room Features</field>
+        <field name="action" ref="action_room_features"/>
+    </record>
+</odoo>
