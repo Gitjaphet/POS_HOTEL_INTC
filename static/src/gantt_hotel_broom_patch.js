@@ -5,8 +5,8 @@ import { ConfirmationDialog } from "@web/core/confirmation_dialog/confirmation_d
 import { onWillStart, onWillUpdateProps, useState } from "@odoo/owl";
 
 // Balai du planning hôtel : rouge = chambre à nettoyer (clic -> Propre),
-// vert = propre et prête, absent = client en séjour. États calculés côté
-// serveur en un seul appel (resource.resource.get_hotel_broom_states).
+// vert = propre et prête, emplacement vide = client en séjour. États
+// calculés côté serveur en un seul appel (get_hotel_broom_states).
 patch(PlanningGanttRenderer.prototype, {
     setup() {
         super.setup();
@@ -34,7 +34,11 @@ patch(PlanningGanttRenderer.prototype, {
         }
     },
 
-    /** 'dirty' | 'clean' | false pour une ligne du planning. */
+    /**
+     * false : pas une ligne de chambre (rien n'est affiché) ;
+     * 'none' : chambre sans balai (emplacement réservé, vide : alignement) ;
+     * 'dirty' | 'clean' : balai rouge ou vert.
+     */
     getHotelBroom(row) {
         if (!this.isHotelPlanning || !this.hasAvatar(row)) {
             return false;
@@ -43,7 +47,7 @@ patch(PlanningGanttRenderer.prototype, {
         if (!props.isResourceMaterial || !props.resId) {
             return false;
         }
-        return this.hotelBrooms.data[props.resId] || false;
+        return this.hotelBrooms.data[props.resId] || "none";
     },
 
     onHotelBroomClick(row) {

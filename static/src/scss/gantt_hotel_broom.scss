@@ -1,0 +1,24 @@
+// Balai du planning hôtel : cercle de taille fixe, toujours présent sur les
+// lignes de chambre pour aligner les noms.
+.o_hotel_broom {
+    width: 26px;
+    height: 26px;
+    font-size: 14px;
+    line-height: 1;
+    border: 2px solid transparent;
+}
+.o_hotel_broom_dirty {
+    border-color: #dc3545;
+    background-color: rgba(220, 53, 69, 0.25);
+    cursor: pointer;
+}
+.o_hotel_broom_clean {
+    border-color: #198754;
+    background-color: rgba(25, 135, 84, 0.25);
+}
+// La clé à molette (icône native des ressources « Matériel ») n'apporte rien
+// à une réception : masquée sur les seules lignes qui portent le balai, donc
+// uniquement dans le planning hôtel.
+.o_gantt_row_title:has(.o_hotel_broom) .o_material_resource {
+    display: none !important;
+}
