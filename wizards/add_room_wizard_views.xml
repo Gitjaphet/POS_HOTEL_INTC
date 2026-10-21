@@ -9,7 +9,11 @@
                 <group>
                     <field name="sale_order_line_id" invisible="1"/>
                     <field name="available_resource_ids" invisible="1"/>
-                    <field name="resource_id"/>
+                    <!-- Mêmes options que « Changer de chambre » : jamais de
+                         création de chambre depuis une réservation. -->
+                    <field name="resource_id"
+                           options="{'no_create': True, 'no_open': True}"
+                           context="{'hotel_show_room_type': True}"/>
                 </group>
                 <footer>
                     <button string="Ajouter"
