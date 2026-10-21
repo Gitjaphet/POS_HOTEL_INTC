@@ -8,9 +8,16 @@
                 <attribute name="color">color</attribute>
             </xpath>
 
+            <!-- Champs chargés pour chaque barre : statut (couleur), paiement
+                 (icône), source (étiquette). sale_line_id distingue une vraie
+                 réservation d'un devis (barre grise). -->
             <xpath expr="//gantt" position="inside">
                 <field name="x_stay_status"/>
                 <field name="x_payment_state"/>
+                <field name="sale_line_id"/>
+                <field name="x_booking_source_id"/>
+                <field name="x_booking_source_code"/>
+                <field name="x_booking_source_color"/>
             </xpath>
         </field>
     </record>

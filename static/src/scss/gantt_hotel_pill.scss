@@ -1,0 +1,29 @@
+// Barres du planning hôtel : mêmes couleurs que les tuiles du tableau de bord
+// (gantt_hotel_stats.scss) — une seule légende : vert = attendu,
+// bleu = en séjour, violet = parti.
+$hotel-pending: #4CAF50;
+$hotel-checked-in: #1976D2;
+$hotel-checked-out: #9C27B0;
+
+.o_hotel_pill {
+    color: #fff !important;
+    .o_gantt_pill_title {
+        color: #fff !important;
+    }
+}
+.o_hotel_pill_pending {
+    background-color: $hotel-pending !important;
+    border-color: darken($hotel-pending, 10%) !important;
+}
+.o_hotel_pill_checked_in {
+    background-color: $hotel-checked-in !important;
+    border-color: darken($hotel-checked-in, 10%) !important;
+}
+.o_hotel_pill_checked_out {
+    background-color: $hotel-checked-out !important;
+    border-color: darken($hotel-checked-out, 10%) !important;
+}
+.o_hotel_pill_source {
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}

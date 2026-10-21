@@ -43,3 +43,9 @@ msgstr "Types acceptés"
 #: model_terms:ir.ui.view,arch_db:POS_HOTEL_INTC.booking_engine_resource_list_hotel_labels
 msgid "Main Room Type"
 msgstr "Type principal"
+
+#. module: POS_HOTEL_INTC
+#: model:ir.actions.act_window,name:POS_HOTEL_INTC.action_booking_sources
+#: model:ir.ui.menu,name:POS_HOTEL_INTC.menu_booking_sources
+msgid "Booking Sources"
+msgstr "Sources de réservation"

@@ -10,6 +10,7 @@ def post_init_hook(env):
     _disable_room_occupancy_automation(env)
     _sync_all_room_occupancy(env)
     _fix_ongoing_task_compute(env)
+    _apply_booking_source_defaults(env)
     _apply_hotel_labels(env)
 
 
@@ -155,6 +156,40 @@ def _fix_ongoing_task_compute(env):
     rooms = Resource.search([("x_task_ids", "!=", False)])
     env.add_to_compute(Resource._fields["x_ongoing_task_id"], rooms)
     env.flush_all()
+
+
+BOOKING_SOURCE_DEFAULTS = {
+    "POS_HOTEL_INTC.utm_source_booking_com": ("B", "#003580"),
+    "POS_HOTEL_INTC.utm_source_website": ("W", "#6610F2"),
+    "POS_HOTEL_INTC.utm_source_direct": ("D", "#198754"),
+    "POS_HOTEL_INTC.utm_source_walk_in": ("WI", "#6C757D"),
+    "POS_HOTEL_INTC.utm_source_agency": ("A", "#E8590C"),
+}
+# Sources ajoutées à la main par l'hôtel (sans xmlid) : reconnues par leur nom.
+BOOKING_SOURCE_BY_NAME = {
+    "expedia": ("E", "#FFC72C"),
+    "airbnb": ("AB", "#FF5A5F"),
+}
+
+
+def _apply_booking_source_defaults(env):
+    """Code et couleur d'étiquette par défaut des sources de réservation.
+    Ne remplit que les sources SANS code : un réglage modifié par l'hôtel
+    n'est jamais écrasé. Source inconnue : deux premières lettres, gris."""
+    for xmlid, (code, color) in BOOKING_SOURCE_DEFAULTS.items():
+        source = env.ref(xmlid, raise_if_not_found=False)
+        if source and not source.x_booking_code:
+            source.write({"x_booking_code": code, "x_booking_color": color})
+    for source in env["utm.source"].search([
+        ("x_is_booking_source", "=", True),
+        ("x_booking_code", "=", False),
+    ]):
+        name = (source.name or "").strip().lower()
+        code, color = next(
+            ((c, col) for key, (c, col) in BOOKING_SOURCE_BY_NAME.items() if key in name),
+            ((source.name or "?")[:2].upper(), "#6C757D"),
+        )
+        source.write({"x_booking_code": code, "x_booking_color": color})
 
 
 def _apply_hotel_labels(env):

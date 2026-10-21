@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Sources de réservation : code et couleur de l'étiquette affichée sur
+         les barres du planning. Liste dédiée (priorité haute) : la liste
+         native des sources UTM, ailleurs dans Odoo, n'est pas touchée. -->
+    <record id="utm_source_booking_list" model="ir.ui.view">
+        <field name="name">utm.source.list.booking</field>
+        <field name="model">utm.source</field>
+        <field name="priority">99</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="name"/>
+                <field name="x_booking_code"/>
+                <field name="x_booking_color" widget="color"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_booking_sources" model="ir.actions.act_window">
+        <field name="name">Booking Sources</field>
+        <field name="res_model">utm.source</field>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="utm_source_booking_list"/>
+        <field name="domain">[('x_is_booking_source', '=', True)]</field>
+        <field name="context">{'default_x_is_booking_source': True}</field>
+    </record>
+
+    <menuitem id="menu_booking_sources"
+              name="Booking Sources"
+              parent="booking_engine.booking_engine_rooms_menu"
+              action="action_booking_sources"
+              sequence="80"/>
+</odoo>

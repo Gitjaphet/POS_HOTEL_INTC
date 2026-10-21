@@ -96,7 +96,7 @@
 
     // Couleurs alignées sur les pastilles du Gantt : le chiffre est coloré en
     // plus du liseré, sinon le repère est trop discret dans une barre d'outils.
-    .o_hotel_tile_occupied   { border-left-color: #5B899E; .o_hotel_tile_value { color: #5B899E; } }
+    .o_hotel_tile_occupied   { border-left-color: #1976D2; .o_hotel_tile_value { color: #1976D2; } }
     .o_hotel_tile_reserved   { border-left-color: #4CAF50; .o_hotel_tile_value { color: #3d8b40; } }
     .o_hotel_tile_free       { border-left-color: #78909C; }
     .o_hotel_tile_soon       { border-left-color: #FF9800; .o_hotel_tile_value { color: #E65100; } }
