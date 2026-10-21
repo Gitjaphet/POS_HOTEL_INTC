@@ -22,3 +22,10 @@
 .o_gantt_row_title:has(.o_hotel_broom) .o_material_resource {
     display: none !important;
 }
+
+// Réveil orange : départ dépassé non effectué (clic : ouvre la réservation).
+.o_hotel_broom_late {
+    border: 2px solid #FF9800 !important;
+    background-color: rgba(255, 152, 0, 0.18) !important;
+    cursor: pointer;
+}

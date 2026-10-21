@@ -10,6 +10,7 @@ def post_init_hook(env):
     _disable_room_occupancy_automation(env)
     _sync_all_room_occupancy(env)
     _fix_ongoing_task_compute(env)
+    _restrict_hk_cron_to_checked_in(env)
     _apply_booking_source_defaults(env)
     _apply_hotel_labels(env)
 
@@ -156,6 +157,48 @@ def _fix_ongoing_task_compute(env):
     rooms = Resource.search([("x_task_ids", "!=", False)])
     env.add_to_compute(Resource._fields["x_ongoing_task_id"], rooms)
     env.flush_all()
+
+
+HK_CRON_MARKER = "MODIFIÉ PAR POS_HOTEL_INTC"
+HK_CRON_SEARCH_OLD = (
+    "env['planning.slot'].search([('start_datetime', '<', last_midnight),"
+    "('end_datetime', '>', last_midnight)])"
+)
+HK_CRON_SEARCH_NEW = (
+    "env['planning.slot'].search([('start_datetime', '<', last_midnight),"
+    "('end_datetime', '>', last_midnight),('x_stay_status', '=', 'checked_in')])"
+)
+
+
+def _restrict_hk_cron_to_checked_in(env):
+    """Tâche de minuit de booking_engine (« Ménage : mise à jour quotidienne
+    des chambres ») : ménage créé UNIQUEMENT pour les chambres dont le client
+    a fait son Arrivée.
+
+    Le code d'origine prenait tous les créneaux traversant minuit : un client
+    attendu mais jamais arrivé (no-show) générait un ménage — balai rouge
+    inutile et, avec pos_hotel_amenities, produits d'accueil débités pour
+    rien (21/10/2026). Le ménage de départ d'un client parti avant minuit est
+    créé au Départ (_x_prepare_checkout_cleaning).
+
+    Repérage par xmlid puis par la phrase exacte de la recherche ; marqueur
+    idempotent. Phrase introuvable (code changé par booking_engine) : on ne
+    touche à rien.
+    """
+    cron = env.ref("booking_engine.ir_cron_room_update", raise_if_not_found=False)
+    if not cron or not cron.ir_actions_server_id:
+        return
+    action = cron.ir_actions_server_id
+    code = action.code or ""
+    if HK_CRON_MARKER in code or HK_CRON_SEARCH_OLD not in code:
+        return
+    marker = (
+        "# MODIFIÉ PAR POS_HOTEL_INTC (21/10/2026) : ménage de séjour uniquement\n"
+        "# pour les chambres où le client a fait son Arrivée (x_stay_status\n"
+        "# checked_in) : un no-show ne crée plus de ménage ni de débit de\n"
+        "# produits d'accueil.\n"
+    )
+    action.sudo().write({"code": marker + code.replace(HK_CRON_SEARCH_OLD, HK_CRON_SEARCH_NEW)})
 
 
 BOOKING_SOURCE_DEFAULTS = {

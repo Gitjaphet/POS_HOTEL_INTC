@@ -4,9 +4,11 @@ import { useService } from "@web/core/utils/hooks";
 import { ConfirmationDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { onWillStart, onWillUpdateProps, useState } from "@odoo/owl";
 
-// Balai du planning hôtel : rouge = chambre à nettoyer (clic -> Propre),
-// vert = propre et prête, emplacement vide = client en séjour. États
-// calculés côté serveur en un seul appel (get_hotel_broom_states).
+// Indicateur de chambre du planning hôtel, à gauche du nom :
+// réveil orange = départ dépassé non effectué (clic -> ouvre la réservation),
+// balai rouge = à nettoyer (clic -> Propre), balai vert = propre et prête,
+// emplacement vide = client en séjour ou chambre attendue. États calculés
+// côté serveur en un seul appel (get_hotel_broom_states).
 patch(PlanningGanttRenderer.prototype, {
     setup() {
         super.setup();
@@ -15,6 +17,7 @@ patch(PlanningGanttRenderer.prototype, {
         if (this.isHotelPlanning) {
             this.hotelBroomOrm = useService("orm");
             this.hotelBroomDialog = useService("dialog");
+            this.hotelBroomAction = useService("action");
             onWillStart(() => this.loadHotelBrooms());
             onWillUpdateProps(() => this.loadHotelBrooms());
         }
@@ -34,25 +37,45 @@ patch(PlanningGanttRenderer.prototype, {
         }
     },
 
-    /**
-     * false : pas une ligne de chambre (rien n'est affiché) ;
-     * 'none' : chambre sans balai (emplacement réservé, vide : alignement) ;
-     * 'dirty' | 'clean' : balai rouge ou vert.
-     */
-    getHotelBroom(row) {
+    _getHotelBroomEntry(row) {
         if (!this.isHotelPlanning || !this.hasAvatar(row)) {
-            return false;
+            return null;
         }
         const props = this.getAvatarProps(row);
         if (!props.isResourceMaterial || !props.resId) {
-            return false;
+            return null;
         }
-        return this.hotelBrooms.data[props.resId] || "none";
+        return this.hotelBrooms.data[props.resId] || { state: "none", title: "" };
     },
 
-    onHotelBroomClick(row) {
+    /**
+     * false : pas une ligne de chambre (rien n'est affiché) ;
+     * 'none' : chambre sans indicateur (emplacement vide : alignement) ;
+     * 'late' | 'dirty' | 'clean' : réveil orange, balai rouge ou vert.
+     */
+    getHotelBroom(row) {
+        const entry = this._getHotelBroomEntry(row);
+        return entry ? entry.state : false;
+    },
+
+    getHotelBroomTitle(row) {
+        const entry = this._getHotelBroomEntry(row);
+        return entry ? entry.title : "";
+    },
+
+    async onHotelBroomClick(row) {
         const props = this.getAvatarProps(row);
-        if (this.hotelBrooms.data[props.resId] !== "dirty") {
+        const state = this.getHotelBroom(row);
+        if (state === "late") {
+            const action = await this.hotelBroomOrm.call(
+                "resource.resource", "action_hotel_open_late_folio", [[props.resId]]
+            );
+            if (action) {
+                await this.hotelBroomAction.doAction(action);
+            }
+            return;
+        }
+        if (state !== "dirty") {
             return;
         }
         this.hotelBroomDialog.add(ConfirmationDialog, {

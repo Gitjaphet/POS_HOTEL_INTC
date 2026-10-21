@@ -124,32 +124,76 @@ class ResourceResource(models.Model):
                 reserved |= slot.resource_id
         return reserved
 
+    def _x_late_departure_slots(self):
+        """Dernier séjour ENREGISTRÉ (checked_in) dont la date de départ est
+        dépassée, par chambre : départ non effectué (client parti sans
+        passer à la réception, ou Départ oublié). {id chambre: créneau}"""
+        slots = self.env["planning.slot"].sudo().search([
+            ("resource_id", "in", self.ids),
+            ("x_stay_status", "=", "checked_in"),
+            ("sale_line_id", "!=", False),
+            ("end_datetime", "<", fields.Datetime.now()),
+        ], order="end_datetime desc")
+        late = {}
+        for slot in slots:
+            late.setdefault(slot.resource_id.id, slot)
+        return late
+
     @api.model
     def get_hotel_broom_states(self):
-        """État du balai de chaque chambre, pour le planning (un seul appel).
+        """Indicateur de chaque chambre dans le planning (un seul appel).
 
-        - client en séjour (occupied / stayover / due_out) : pas de balai
+        - départ dépassé sans Départ : 'late' (réveil orange, clic = ouvre
+          la réservation)
+        - client en séjour (occupied / stayover / due_out) : rien
         - ménage du jour (tâche en cours) ni Propre ni Prêt : 'dirty' (rouge),
           même si la chambre est réservée : c'est le ménage le plus urgent
         - propre mais réservée par un client confirmé attendu aujourd'hui :
-          pas de balai (la chambre n'est pas disponible pour un autre client)
+          rien (la chambre n'est pas disponible pour un autre client)
         - propre, libre, sans réservation aujourd'hui : 'clean' (vert)
 
-        :return: {id de chambre: 'dirty' | 'clean'}
+        :return: {id de chambre: {'state': ..., 'title': texte de la bulle}}
         """
         clean = self._x_hk_clean_stages()
         rooms = self.search(self._get_room_resource_domain())
         reserved = rooms._x_rooms_reserved_today()
+        late = rooms._x_late_departure_slots()
         states = {}
         for room in rooms:
+            slot = late.get(room.id)
+            if slot:
+                tz = pytz.timezone(room.tz or "UTC")
+                end_local = pytz.utc.localize(slot.end_datetime).astimezone(tz)
+                states[room.id] = {
+                    "state": "late",
+                    "title": "Départ prévu le %s (%s), non effectué : cliquer pour ouvrir la réservation" % (
+                        end_local.strftime("%d/%m"), slot.sale_line_id.order_id.name,
+                    ),
+                }
+                continue
             if room.x_occupancy in ("occupied", "stayover", "due_out"):
                 continue
             task = room.x_ongoing_task_id
             if task and task.stage_id not in clean:
-                states[room.id] = "dirty"
+                states[room.id] = {
+                    "state": "dirty",
+                    "title": "À nettoyer : cliquer quand la chambre est propre",
+                }
             elif room not in reserved:
-                states[room.id] = "clean"
+                states[room.id] = {
+                    "state": "clean",
+                    "title": "Chambre propre et prête",
+                }
         return states
+
+    def action_hotel_open_late_folio(self):
+        """Clic sur le réveil orange : ouvre la réservation du départ non
+        effectué, avec la fiche hôtel (même action que le planning)."""
+        self.ensure_one()
+        slot = self._x_late_departure_slots().get(self.id)
+        if not slot:
+            return False
+        return slot._x_hotel_folio_action(slot.sale_line_id.order_id)
 
     def action_hotel_broom_clean(self):
         """Clic sur le balai rouge : le ménage du jour passe à « Propre ».
