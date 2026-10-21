@@ -1,21 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
-    <!-- Balai dans un carré de la taille de la clé à molette, sur la même
-         ligne que l'avatar de la chambre : l'Avatar d'origine est remplacé
-         par un conteneur horizontal (balai + Avatar). Le t-if de l'Avatar
-         passe sur ce conteneur : la chaîne t-if / t-elif / t-else reste
-         intacte. -->
+    <!-- Balai inséré comme FRÈRE du span du nom (text-truncate w-0
+         flex-grow-1), dans la rangée horizontale o_gantt_row_title : le span
+         du nom et l'Avatar d'origine restent intacts et gardent toute leur
+         largeur ; le balai a une largeur fixe (flex-shrink-0). Ne jamais
+         l'insérer DANS ce span : il est prévu pour un seul contenu et coupe
+         ou écrase le reste. -->
     <t t-inherit="planning.PlanningGanttRenderer.RowHeader" t-inherit-mode="extension">
-        <xpath expr="//Avatar" position="replace">
-            <div t-if="hasAvatar(row)" class="d-flex align-items-center" style="min-width: 0;">
-                <t t-set="hotelBroom" t-value="getHotelBroom(row)"/>
-                <span t-if="hotelBroom"
-                      t-attf-class="o_hotel_broom d-inline-flex flex-shrink-0 align-items-center justify-content-center rounded me-1 {{ hotelBroom === 'dirty' ? 'bg-danger' : 'bg-success' }}"
-                      t-att-style="'width: 22px; height: 22px; font-size: 12px;' + (hotelBroom === 'dirty' ? ' cursor: pointer;' : '')"
-                      t-att-title="hotelBroom === 'dirty' ? 'À nettoyer : cliquer quand la chambre est propre' : 'Chambre propre et prête'"
-                      t-on-click.stop.prevent="() => this.onHotelBroomClick(row)">🧹</span>
-                <Avatar t-props="getAvatarProps(row)"/>
-            </div>
+        <xpath expr="//div[hasclass('o_gantt_row_title')]/span[hasclass('text-truncate')]" position="before">
+            <t t-set="hotelBroom" t-value="getHotelBroom(row)"/>
+            <span t-if="hotelBroom"
+                  t-attf-class="o_hotel_broom d-inline-flex flex-shrink-0 align-items-center justify-content-center rounded me-1 {{ hotelBroom === 'dirty' ? 'bg-danger' : 'bg-success' }}"
+                  t-att-style="'width: 22px; height: 22px; font-size: 12px;' + (hotelBroom === 'dirty' ? ' cursor: pointer;' : '')"
+                  t-att-title="hotelBroom === 'dirty' ? 'À nettoyer : cliquer quand la chambre est propre' : 'Chambre propre et prête'"
+                  t-on-click.stop.prevent="() => this.onHotelBroomClick(row)">🧹</span>
         </xpath>
     </t>
 </templates>
