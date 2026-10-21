@@ -9,6 +9,7 @@ def post_init_hook(env):
     _disable_room_hours_automation(env)
     _disable_room_occupancy_automation(env)
     _sync_all_room_occupancy(env)
+    _apply_hotel_labels(env)
 
 
 def _fix_room_calendars(env):
@@ -118,3 +119,15 @@ def _sync_all_room_occupancy(env):
     désactivées ci-dessus — à appeler APRÈS _disable_room_occupancy_automation."""
     Resource = env["resource.resource"]
     Resource.search(Resource._get_room_resource_domain())._sync_occupancy_from_slots()
+
+
+def _apply_hotel_labels(env):
+    """Applique les noms hôteliers des menus de booking_engine (i18n/fr.po)
+    en ÉCRASANT les traductions existantes.
+
+    Sans overwrite, Odoo ne remplace jamais une traduction déjà présente :
+    celle de booking_engine (« Offres », « Ressources »...), chargée avant
+    nous, gardait la priorité. Seuls les termes de notre fr.po sont
+    concernés (investigation du 21/10/2026).
+    """
+    env["ir.module.module"].search([("name", "=", "POS_HOTEL_INTC")])._update_translations(overwrite=True)
