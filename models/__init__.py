@@ -14,6 +14,7 @@ from . import rental_order_wizard
 from . import room_removal_log
 from . import planning_slot
 from . import planning_slot_source
+from . import planning_slot_open_folio
 from . import sale_advance_payment_inv
 from . import night_audit
 from . import account_move
