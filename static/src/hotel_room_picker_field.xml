@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <!-- Texte des chambres si la ligne en a déjà, sinon le menu natif. -->
+    <t t-name="POS_HOTEL_INTC.HotelRoomPickerField">
+        <span t-if="hotelRoomNames" class="o_hotel_room_names" t-esc="hotelRoomNames"/>
+        <t t-else="" t-call="web.Many2OneField"/>
+    </t>
+</templates>

@@ -1,6 +1,6 @@
 {
     "name": "POS Hotel INTC",
-    "version": "19.0.1.0.28",
+    "version": "19.0.1.0.29",
     "category": "Point of Sale",
     "summary": "Transfert des consommations POS vers les chambres d'hôtel",
     "depends": ["point_of_sale", "hotel", "planning"],
@@ -47,6 +47,8 @@
         "web.assets_backend": [
             "POS_HOTEL_INTC/static/src/scss/room_removed_line.scss",
             "POS_HOTEL_INTC/static/src/form_hotel_draft_patch.js",
+            "POS_HOTEL_INTC/static/src/hotel_room_picker_field.js",
+            "POS_HOTEL_INTC/static/src/hotel_room_picker_field.xml",
         ],
         # Les vues Gantt sont chargées à la demande : leurs composants et
         # templates vivent dans le bundle "lazy", jamais dans assets_backend.
