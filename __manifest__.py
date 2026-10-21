@@ -1,6 +1,6 @@
 {
     "name": "POS Hotel INTC",
-    "version": "19.0.1.0.27",
+    "version": "19.0.1.0.28",
     "category": "Point of Sale",
     "summary": "Transfert des consommations POS vers les chambres d'hôtel",
     "depends": ["point_of_sale", "hotel", "planning"],
@@ -25,6 +25,7 @@
         "wizards/charge_add_wizard_views.xml",
         "wizards/charge_add_service_wizard_views.xml",
         "views/sale_order_views.xml",
+        "views/sale_order_room_picker_views.xml",
         "views/res_config_settings_views.xml",
         "views/res_partner_views.xml",
         "views/sale_order_guest_registration_views.xml",

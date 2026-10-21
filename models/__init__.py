@@ -6,6 +6,7 @@ from . import folio_charge
 from . import sale_order
 from . import pos_order
 from . import sale_order_line
+from . import sale_order_line_room_picker
 from . import product_pricing
 from . import utm_source
 from . import rental_order_wizard

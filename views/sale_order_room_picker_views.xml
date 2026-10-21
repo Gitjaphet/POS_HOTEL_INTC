@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Menu « Choisir une chambre » à côté de la colonne Chambre : visible
+         tant que la ligne n'a pas de chambre (nouvelle ligne), obligatoire
+         sur une réservation confirmée (une chambre sans numéro ne bloquerait
+         rien dans le planning). Choix affichés « 301 (Chambre Studio) ». -->
+    <record id="sale_order_room_picker_view" model="ir.ui.view">
+        <field name="name">sale.order.form.hotel.room.picker</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="POS_HOTEL_INTC.sale_order_primary_view_pos_hotel_intc"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='order_line']//list//field[@name='x_room_resource_names']" position="after">
+                <field name="x_available_room_ids" column_invisible="1"/>
+                <field name="x_requested_room_id"
+                       string="Choix chambre"
+                       placeholder="Choisir une chambre…"
+                       context="{'hotel_show_room_type': True}"
+                       options="{'no_create': True, 'no_open': True}"
+                       invisible="x_room_resource_names or display_type"
+                       required="not x_room_resource_names and not display_type and parent.state == 'sale'"
+                       readonly="parent.state == 'cancel' or parent.locked"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
