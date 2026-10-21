@@ -85,6 +85,87 @@ class ResourceResource(models.Model):
             if room.x_occupancy != target:
                 room.sudo().x_occupancy = target
 
+    # ------------------------------------------------------------------
+    # Ménage : balai du planning
+    # ------------------------------------------------------------------
+
+    @api.model
+    def _x_hk_clean_stages(self):
+        """Étapes de ménage « fait » : Propre et Prêt (xmlid booking_engine,
+        jamais par id : les ids changent d'une base à l'autre)."""
+        stages = self.env["project.task.type"]
+        for xmlid in ("booking_engine.project_task_type_17", "booking_engine.project_task_type_18"):
+            stage = self.env.ref(xmlid, raise_if_not_found=False)
+            if stage:
+                stages |= stage
+        return stages
+
+    @api.model
+    def get_hotel_broom_states(self):
+        """État du balai de chaque chambre, pour le planning (un seul appel).
+
+        - client en séjour (occupied / stayover / due_out) : pas de balai
+        - ménage du jour (tâche en cours) ni Propre ni Prêt : 'dirty' (rouge)
+        - sinon : 'clean' (vert)
+
+        :return: {id de chambre: 'dirty' | 'clean'}
+        """
+        clean = self._x_hk_clean_stages()
+        states = {}
+        for room in self.search(self._get_room_resource_domain()):
+            if room.x_occupancy in ("occupied", "stayover", "due_out"):
+                continue
+            task = room.x_ongoing_task_id
+            states[room.id] = "dirty" if task and task.stage_id not in clean else "clean"
+        return states
+
+    def action_hotel_broom_clean(self):
+        """Clic sur le balai rouge : le ménage du jour passe à « Propre ».
+        booking_engine enchaîne sur « Prêt » ; pos_hotel_amenities, s'il est
+        installé, débite le kit à ce moment-là."""
+        clean_stage = self.env.ref("booking_engine.project_task_type_17", raise_if_not_found=False)
+        if not clean_stage:
+            return False
+        clean = self._x_hk_clean_stages()
+        for room in self:
+            task = room.x_ongoing_task_id
+            if task and task.stage_id not in clean:
+                task.stage_id = clean_stage
+        return True
+
+    def _x_prepare_checkout_cleaning(self, partner=False):
+        """Au départ du client : la chambre est à nettoyer tout de suite.
+
+        Réutilise le ménage non fait du jour (créé par la tâche de minuit)
+        en le marquant « Départ », sinon en crée un avec les mêmes champs que
+        la tâche de minuit de booking_engine. Respecte le réglage « ménage
+        au départ » du type de chambre (x_has_checkout_cleaning).
+        """
+        project = self.env["project.project"].sudo().search(
+            [("x_is_house_keeping_project", "=", True)], limit=1
+        )
+        if not project:
+            return
+        clean = self._x_hk_clean_stages()
+        for room in self.filtered_domain(self._get_room_resource_domain()):
+            if not room.default_role_id.x_has_checkout_cleaning:
+                continue
+            task = room.x_ongoing_task_id
+            if task and task.stage_id not in clean:
+                if task.x_cleaning != "checkout":
+                    task.sudo().x_cleaning = "checkout"
+                continue
+            self.env["project.task"].sudo().create({
+                "name": "HK " + room.name,
+                "project_id": project.id,
+                "partner_id": partner.id if partner else False,
+                "description": "Ménage de départ créé au check-out.",
+                "date_deadline": fields.Datetime.now(),
+                "x_resource_id": room.id,
+                "x_cleaning": "checkout",
+                "user_ids": [(5, 0)],
+            })
+
     @api.model
     def _load_pos_data_domain(self, data, config):
         return self._get_room_resource_domain()

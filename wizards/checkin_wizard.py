@@ -86,7 +86,12 @@ class PosHotelCheckinWizard(models.TransientModel):
         # (rental_status et les automatisations booking_engine qui en
         # dépendent) passent AVANT, notre synchro a toujours le dernier mot.
         self.env.flush_all()
-        selected.planning_slot_id.resource_id._sync_occupancy_from_slots()
+        rooms = selected.planning_slot_id.resource_id
+        rooms._sync_occupancy_from_slots()
+        # Départ : la chambre est à nettoyer tout de suite (balai rouge du
+        # planning), sans attendre la tâche de minuit de booking_engine.
+        if self.status == "checkout":
+            rooms._x_prepare_checkout_cleaning(self.order_id.partner_id)
         return {"type": "ir.actions.act_window_close"}
 
 
