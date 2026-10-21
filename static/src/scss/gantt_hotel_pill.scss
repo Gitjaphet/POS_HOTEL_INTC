@@ -27,3 +27,28 @@ $hotel-checked-out: #9C27B0;
     font-weight: 700;
     letter-spacing: 0.02em;
 }
+
+// Légende des sources (tableau de bord du planning) : prend la place restante
+// à droite des tuiles, cadre de même hauteur et même fond que les tuiles,
+// étiquettes centrées horizontalement et verticalement, retour à la ligne
+// automatique quand la place manque.
+.o_hotel_stats_group_sources {
+    flex: 1 1 280px;
+    min-width: 220px;
+    display: flex;
+    flex-direction: column;
+
+    .o_hotel_sources {
+        flex: 1;
+        display: flex;
+        flex-wrap: wrap;
+        align-content: center;
+        align-items: center;
+        justify-content: center;
+        gap: 6px 14px;
+        min-height: 60px;
+        padding: 8px 12px;
+        border-radius: 6px;
+        background-color: rgba(128, 128, 128, 0.08);
+    }
+}

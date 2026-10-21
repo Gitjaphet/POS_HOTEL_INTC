@@ -66,7 +66,7 @@
             <!-- Légende des étiquettes de source affichées sur les barres :
                  construite depuis les réglages (Sources de réservation), même
                  couleur et même contraste que sur les barres (hotelSourceStyle). -->
-            <div t-if="hotelStats.data.sources and hotelStats.data.sources.length" class="o_hotel_stats_group">
+            <div t-if="hotelStats.data.sources and hotelStats.data.sources.length" class="o_hotel_stats_group o_hotel_stats_group_sources">
                 <span class="o_hotel_stats_scope">Sources</span>
                 <div class="o_hotel_sources d-flex flex-wrap align-items-center gap-2">
                     <span t-foreach="hotelStats.data.sources" t-as="src" t-key="src.code"
