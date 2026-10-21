@@ -1,3 +1,5 @@
+from datetime import datetime, time, timedelta
+
 import pytz
 
 from odoo import api, fields, models
@@ -100,23 +102,53 @@ class ResourceResource(models.Model):
                 stages |= stage
         return stages
 
+    def _x_rooms_reserved_today(self):
+        """Chambres promises à un client CONFIRMÉ pas encore arrivé (séjour
+        pending) dont le séjour touche la journée d'aujourd'hui, dans le
+        fuseau de chaque chambre. Une réservation pour plus tard n'empêche
+        pas la chambre d'être disponible aujourd'hui."""
+        now = fields.Datetime.now()
+        candidates = self.env["planning.slot"].sudo().search([
+            ("resource_id", "in", self.ids),
+            ("x_stay_status", "=", "pending"),
+            ("sale_line_id", "!=", False),
+            ("end_datetime", ">", now),
+        ])
+        reserved = self.env["resource.resource"]
+        for slot in candidates:
+            tz = pytz.timezone(slot.resource_id.tz or "UTC")
+            today_local = pytz.utc.localize(now).astimezone(tz).date()
+            day_stop = tz.localize(datetime.combine(today_local + timedelta(days=1), time.min))
+            day_stop_utc = day_stop.astimezone(pytz.UTC).replace(tzinfo=None)
+            if slot.start_datetime and slot.start_datetime < day_stop_utc:
+                reserved |= slot.resource_id
+        return reserved
+
     @api.model
     def get_hotel_broom_states(self):
         """État du balai de chaque chambre, pour le planning (un seul appel).
 
         - client en séjour (occupied / stayover / due_out) : pas de balai
-        - ménage du jour (tâche en cours) ni Propre ni Prêt : 'dirty' (rouge)
-        - sinon : 'clean' (vert)
+        - ménage du jour (tâche en cours) ni Propre ni Prêt : 'dirty' (rouge),
+          même si la chambre est réservée : c'est le ménage le plus urgent
+        - propre mais réservée par un client confirmé attendu aujourd'hui :
+          pas de balai (la chambre n'est pas disponible pour un autre client)
+        - propre, libre, sans réservation aujourd'hui : 'clean' (vert)
 
         :return: {id de chambre: 'dirty' | 'clean'}
         """
         clean = self._x_hk_clean_stages()
+        rooms = self.search(self._get_room_resource_domain())
+        reserved = rooms._x_rooms_reserved_today()
         states = {}
-        for room in self.search(self._get_room_resource_domain()):
+        for room in rooms:
             if room.x_occupancy in ("occupied", "stayover", "due_out"):
                 continue
             task = room.x_ongoing_task_id
-            states[room.id] = "dirty" if task and task.stage_id not in clean else "clean"
+            if task and task.stage_id not in clean:
+                states[room.id] = "dirty"
+            elif room not in reserved:
+                states[room.id] = "clean"
         return states
 
     def action_hotel_broom_clean(self):
