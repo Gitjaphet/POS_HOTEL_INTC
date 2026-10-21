@@ -51,12 +51,31 @@
                     </div>
                     <div class="o_hotel_tile o_hotel_tile_paid">
                         <span class="o_hotel_tile_value" t-esc="hotelStats.data.paid"/>
-                        <span class="o_hotel_tile_label">Payées</span>
+                        <!-- Même pastille que sur les barres du planning. -->
+                        <span class="o_hotel_tile_label">
+                            <span class="badge rounded-pill text-bg-warning me-1"><i class="fa fa-money"/></span>Payées
+                        </span>
                     </div>
                     <div class="o_hotel_tile o_hotel_tile_cancelled">
                         <span class="o_hotel_tile_value" t-esc="hotelStats.data.cancelled"/>
                         <span class="o_hotel_tile_label">Annulées</span>
                     </div>
+                </div>
+            </div>
+
+            <!-- Légende des étiquettes de source affichées sur les barres :
+                 construite depuis les réglages (Sources de réservation), même
+                 couleur et même contraste que sur les barres (hotelSourceStyle). -->
+            <div t-if="hotelStats.data.sources and hotelStats.data.sources.length" class="o_hotel_stats_group">
+                <span class="o_hotel_stats_scope">Sources</span>
+                <div class="o_hotel_sources d-flex flex-wrap align-items-center gap-2">
+                    <span t-foreach="hotelStats.data.sources" t-as="src" t-key="src.code"
+                          class="d-inline-flex align-items-center small text-nowrap">
+                        <span class="o_hotel_pill_source badge me-1"
+                              t-att-style="hotelSourceStyle({ x_booking_source_color: src.color })"
+                              t-esc="src.code"/>
+                        <span t-esc="src.name"/>
+                    </span>
                 </div>
             </div>
             </div>
