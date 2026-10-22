@@ -26,7 +26,7 @@ class PosHotelCheckinWizard(models.TransientModel):
         string="Chambres",
     )
     reason = fields.Text(
-        string="Motif (si départ avec dette non réglée)",
+        string="Motif (si une dette est annulée au départ)",
     )
 
     def action_confirm(self):
@@ -46,14 +46,7 @@ class PosHotelCheckinWizard(models.TransientModel):
                 })
                 slot.sale_line_id.update({"qty_delivered": slot.sale_line_id.qty_delivered + 1})
             else:
-                if line.x_due_amount and not line.cancel_due_debt:
-                    raise UserError(
-                        f"La chambre {slot.resource_id.name} a encore {line.x_due_amount} "
-                        f"{line.currency_id.symbol} d'extras non réglés. Cochez "
-                        "'Annuler la dette due sur cette chambre' (avec motif) pour "
-                        "continuer, ou réglez d'abord ces extras."
-                    )
-                if line.x_due_amount and line.cancel_due_debt:
+                if line.x_due_amount and line.due_action == "cancel":
                     if not self.reason:
                         raise UserError(
                             "Un motif est requis pour annuler la dette au départ."
@@ -69,6 +62,16 @@ class PosHotelCheckinWizard(models.TransientModel):
                         body=f"Départ chambre {slot.resource_id.name} avec dette annulée "
                              f"({line.x_due_amount} {line.currency_id.symbol}). "
                              f"Motif : {self.reason}"
+                    )
+                elif line.x_due_amount:
+                    # Départ avec solde : la chambre est libérée, les extras
+                    # restent « Dû » sur la réservation (compte client) et se
+                    # règlent plus tard par « Régler les extras ». Aucune
+                    # écriture : la dette est déjà au compte client.
+                    self.order_id.message_post(
+                        body=f"Départ chambre {slot.resource_id.name} avec "
+                             f"{line.x_due_amount} {line.currency_id.symbol} "
+                             "laissés en compte client (à régler plus tard)."
                     )
                 if slot.end_datetime and now < slot.end_datetime:
                     slot.sale_line_id._adjust_room_stay_date(slot, 'end', now)
@@ -131,8 +134,17 @@ class PosHotelCheckinWizardLine(models.TransientModel):
     currency_id = fields.Many2one(
         related="wizard_id.order_id.currency_id",
     )
-    cancel_due_debt = fields.Boolean(
-        string="Annuler la dette due sur cette chambre",
+    due_action = fields.Selection(
+        [
+            ("keep", "Laisser en compte client"),
+            ("cancel", "Annuler la dette"),
+        ],
+        string="Si dette au départ",
+        default="keep",
+        required=True,
+        help="Laisser en compte client : la chambre est libérée, les extras "
+             "restent dus sur la réservation et se règlent plus tard. "
+             "Annuler la dette : les extras dus sont annulés (motif obligatoire).",
     )
 
     @api.depends("planning_slot_id", "wizard_id.status")
