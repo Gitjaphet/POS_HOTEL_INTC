@@ -364,6 +364,16 @@ class PosHotelFolioCharge(models.Model):
 
         if not income_account and self.pos_order_line_id.product_id:
             product = self.pos_order_line_id.product_id
+            # Formule (combo) : le revenu est compté sur ses ARTICLES. S'ils
+            # partagent le même compte de revenu, c'est lui qu'on extourne.
+            items = self.pos_order_line_id.combo_line_ids
+            if items:
+                item_accounts = {
+                    i.product_id.product_tmpl_id._get_product_accounts().get("income")
+                    for i in items
+                }
+                if len(item_accounts) == 1:
+                    product = items[:1].product_id
             income_account = product.product_tmpl_id._get_product_accounts().get("income")
             fiscal_position = self.pos_order_id.fiscal_position_id
             if fiscal_position and income_account:

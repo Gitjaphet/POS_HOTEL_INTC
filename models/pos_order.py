@@ -55,15 +55,32 @@ class PosOrder(models.Model):
         # Lignes de remboursement : on compense les lignes folio d'origine,
         # quelle que soit la réservation en cours du client.
         refund_lines = self.lines.filtered(lambda l: l.refunded_orderline_id)
+        # Formules (combos) : la charge est portée par la ligne MÈRE ; les
+        # remboursements de ses articles sont cumulés puis ramenés à elle.
+        combo_refunds = {}
         for line in refund_lines:
             if not line.price_subtotal_incl:
                 continue
             original_line = line.refunded_orderline_id
+            if original_line.combo_parent_id and not folio_charge.search_count(
+                [("pos_order_line_id", "=", original_line.id)]
+            ):
+                parent = original_line.combo_parent_id
+                refunded, refund_parent = combo_refunds.get(
+                    parent, (0.0, line.combo_parent_id or line)
+                )
+                combo_refunds[parent] = (refunded + abs(line.price_subtotal_incl), refund_parent)
+                continue
             original_total = original_line.price_subtotal_incl
             ratio = min(abs(line.price_subtotal_incl) / original_total, 1.0) if original_total else 0.0
             original_charges = folio_charge.search([("pos_order_line_id", "=", original_line.id)])
             for original_charge in original_charges:
                 folio_charge._create_refund_from_charge(original_charge, self, line, ratio)
+        for parent, (refunded, refund_parent) in combo_refunds.items():
+            original_total = sum(parent.combo_line_ids.mapped("price_subtotal_incl"))
+            ratio = min(refunded / original_total, 1.0) if original_total else 0.0
+            for original_charge in folio_charge.search([("pos_order_line_id", "=", parent.id)]):
+                folio_charge._create_refund_from_charge(original_charge, self, refund_parent, ratio)
 
         # Lignes normales (hors remboursement) : logique inchangée.
         normal_lines = self.lines - refund_lines
@@ -100,15 +117,23 @@ class PosOrder(models.Model):
         ratio = (room_charge_amount / total_amount) if total_amount else 0.0
 
         for line in normal_lines:
-            if not line.price_subtotal_incl:
+            if line.combo_parent_id:
+                continue  # article d'une formule : porté par la ligne mère
+            # Formule (combo) : la ligne mère est à 0, le prix est réparti sur
+            # ses articles -> une seule charge, au total de la formule.
+            line_total = (
+                sum(line.combo_line_ids.mapped("price_subtotal_incl"))
+                if line.combo_line_ids else line.price_subtotal_incl
+            )
+            if not line_total:
                 continue
             if ratio <= 0:
-                folio_charge._create_from_pos_order_line(self, sale_order, line, "paid_pos", sale_order_line=sale_order_line, room_resource=resource)
+                folio_charge._create_from_pos_order_line(self, sale_order, line, "paid_pos", amount=line_total, sale_order_line=sale_order_line, room_resource=resource)
             elif ratio >= 1:
-                folio_charge._create_from_pos_order_line(self, sale_order, line, "due", sale_order_line=sale_order_line, room_resource=resource)
+                folio_charge._create_from_pos_order_line(self, sale_order, line, "due", amount=line_total, sale_order_line=sale_order_line, room_resource=resource)
             else:
-                due_amount = line.price_subtotal_incl * ratio
-                paid_amount = line.price_subtotal_incl - due_amount
+                due_amount = line_total * ratio
+                paid_amount = line_total - due_amount
                 folio_charge._create_from_pos_order_line(self, sale_order, line, "due", amount=due_amount, sale_order_line=sale_order_line, room_resource=resource)
                 folio_charge._create_from_pos_order_line(self, sale_order, line, "paid_pos", amount=paid_amount, sale_order_line=sale_order_line, room_resource=resource)
 

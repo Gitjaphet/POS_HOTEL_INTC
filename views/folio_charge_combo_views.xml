@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Onglet Extra : la colonne Description affiche la formule et ses
+         articles en dessous (x_name_html). Une seule ligne par formule, donc
+         Annuler / Rembourser portent sur la formule entière. -->
+    <record id="sale_order_folio_charge_combo_view" model="ir.ui.view">
+        <field name="name">sale.order.form.hotel.folio.combo</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="POS_HOTEL_INTC.sale_order_primary_view_pos_hotel_intc"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='x_extra_charge']//field[@name='x_folio_charge_normal_ids']//list//field[@name='name']" position="replace">
+                <field name="name" column_invisible="1"/>
+                <field name="x_name_html" string="Description"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
