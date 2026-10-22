@@ -1,6 +1,6 @@
 {
     "name": "POS Hotel INTC",
-    "version": "19.0.1.0.35",
+    "version": "19.0.1.0.36",
     "category": "Point of Sale",
     "summary": "Transfert des consommations POS vers les chambres d'hôtel",
     "depends": ["point_of_sale", "hotel", "planning"],
@@ -8,6 +8,7 @@
         "data/ir_cron_room_occupancy.xml",
         "views/hotel_menu_labels.xml",
         "views/utm_source_views.xml",
+        "views/resource_housekeeping_views.xml",
         "security/ir.model.access.csv",
         "data/night_audit_sequence.xml",
         "data/booking_sources.xml",

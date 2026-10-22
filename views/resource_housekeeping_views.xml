@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Fiche chambre : bouton « Nettoyé » à la place de la liste déroulante
+         « Étape de ménage » (lecture seule). Même méthode que le balai rouge
+         du planning : la tâche du jour passe à Propre et, avec
+         pos_hotel_amenities, le kit (séjour ou départ) est débité. -->
+    <record id="resource_form_hotel_hk_clean_button" model="ir.ui.view">
+        <field name="name">resource.resource.form.hotel.hk.clean.button</field>
+        <field name="model">resource.resource</field>
+        <field name="inherit_id" ref="booking_engine.resource_resource_form_view_extension"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='x_house_keeping_stage_id']" position="attributes">
+                <attribute name="readonly">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='x_house_keeping_stage_id']" position="after">
+                <field name="x_hk_needs_cleaning" invisible="1"/>
+                <button name="action_hotel_broom_clean"
+                        type="object"
+                        string="Nettoyé"
+                        icon="fa-check"
+                        class="btn-primary"
+                        colspan="2"
+                        invisible="not x_hk_needs_cleaning"
+                        confirm="Marquer le ménage de cette chambre comme terminé ?"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
