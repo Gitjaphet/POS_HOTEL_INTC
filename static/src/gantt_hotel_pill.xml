@@ -1,14 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
-    <!-- Étiquette de la source de réservation (code et couleur réglables dans
-         Réservation(s) > Configuration > Sources de réservation). -->
     <t t-inherit="planning.PlanningGanttRenderer.Pill" t-inherit-mode="extension">
+        <!-- Étiquette de la source de réservation (code et couleur réglables dans
+             Réservation(s) > Configuration > Sources de réservation). -->
         <xpath expr="//span[hasclass('o_gantt_pill_title')]" position="before">
             <span t-if="pill.record.x_booking_source_code"
                   class="o_hotel_pill_source badge ms-1"
                   t-att-style="hotelSourceStyle(pill.record)"
                   t-att-title="pill.record.x_booking_source_id and pill.record.x_booking_source_id.display_name"
                   t-esc="pill.record.x_booking_source_code"/>
+        </xpath>
+        <!-- Barre colorée aux heures réelles dans sa case (règle de midi) :
+             marges calculées par gantt_hotel_tapechart_patch.js. Hors barres
+             de chambre, pill.hotelStyle est vide : aucun effet. -->
+        <xpath expr="//div[hasclass('o_gantt_pill')]" position="attributes">
+            <attribute name="t-att-style">pill.hotelStyle</attribute>
         </xpath>
     </t>
 </templates>
