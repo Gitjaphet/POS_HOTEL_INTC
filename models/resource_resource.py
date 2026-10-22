@@ -15,18 +15,25 @@ class ResourceResource(models.Model):
         compute="_compute_x_current_partner_id",
     )
 
+    def _x_current_checked_in_slot(self):
+        """Séjour ENREGISTRÉ de la chambre (Arrivée faite, Départ pas fait),
+        le plus récent, SANS condition de date de fin : un client en retard
+        de départ est toujours dans la chambre et consomme. Règle unique pour
+        la liste « Transfert Chambre » du POS (x_current_partner_id) et pour
+        le rattachement des consommations (pos.order)."""
+        self.ensure_one()
+        return self.env["planning.slot"].sudo().search([
+            ("resource_id", "=", self.id),
+            ("x_stay_status", "=", "checked_in"),
+            ("sale_line_id", "!=", False),
+            ("start_datetime", "<=", fields.Datetime.now()),
+        ], order="start_datetime desc", limit=1)
+
     @api.depends()
     def _compute_x_current_partner_id(self):
-        now = fields.Datetime.now()
-        Slot = self.env["planning.slot"]
         for resource in self:
-            slot = Slot.search([
-                ("resource_id", "=", resource.id),
-                ("x_stay_status", "=", "checked_in"),
-                ("start_datetime", "<=", now),
-                ("end_datetime", ">=", now),
-            ], limit=1)
-            resource.x_current_partner_id = slot.sale_line_id.order_id.partner_id if slot and slot.sale_line_id else False
+            slot = resource._x_current_checked_in_slot()
+            resource.x_current_partner_id = slot.sale_line_id.order_id.partner_id
 
     @api.model
     def _get_room_resource_domain(self):

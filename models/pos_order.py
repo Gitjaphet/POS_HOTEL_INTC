@@ -74,11 +74,13 @@ class PosOrder(models.Model):
         sale_order_line = False
         resource = self.x_room_charge_resource_id
         if resource:
-            now = fields.Datetime.now()
-            slot = resource.x_ongoing_booking.filtered(
-                lambda s: s.start_datetime <= now <= s.end_datetime
-            )[:1]
-            if slot and slot.sale_line_id:
+            # Même règle que la liste du POS (x_current_partner_id) : séjour
+            # enregistré de CETTE chambre, même si son départ est dépassé.
+            # (x_ongoing_booking, champ Studio basé sur la ligne de commande,
+            # n'est plus utilisé : il marquait toutes les chambres d'une ligne
+            # groupée et ignorait les départs en retard.)
+            slot = resource._x_current_checked_in_slot()
+            if slot:
                 sale_order = slot.sale_line_id.order_id
                 sale_order_line = slot.sale_line_id
 
