@@ -101,7 +101,7 @@
             </list>
           </field>
           <div class="oe_right" style="text-align: right; margin-top: 8px;">
-            <button name="%(folio_settle_wizard_action)d"
+            <button name="%(folio_settle_service_wizard_action)d"
                     string="Régler les services"
                     type="action"
                     class="btn-primary"

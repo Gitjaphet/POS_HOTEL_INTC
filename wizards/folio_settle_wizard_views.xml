@@ -7,6 +7,7 @@
             <form>
                 <field name="sale_order_id" invisible="1"/>
                 <field name="currency_id" invisible="1"/>
+                <field name="is_service" invisible="1"/>
                 <group>
                     <field name="total_due"/>
                     <field name="amount"/>
@@ -22,6 +23,14 @@
 
     <record id="folio_settle_wizard_action" model="ir.actions.act_window">
         <field name="name">Régler les extras</field>
+        <field name="res_model">pos.hotel.folio.settle.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <!-- Même fenêtre, titre adapté pour le bouton de l'onglet Service. -->
+    <record id="folio_settle_service_wizard_action" model="ir.actions.act_window">
+        <field name="name">Régler les services</field>
         <field name="res_model">pos.hotel.folio.settle.wizard</field>
         <field name="view_mode">form</field>
         <field name="target">new</field>

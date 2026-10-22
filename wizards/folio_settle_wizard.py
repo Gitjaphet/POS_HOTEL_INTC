@@ -50,7 +50,13 @@ class PosHotelFolioSettleWizard(models.TransientModel):
         res = super().default_get(fields_list)
         if res.get("sale_order_id") and "amount" in fields_list:
             sale_order = self.env["sale.order"].browse(res["sale_order_id"])
-            is_service = res.get("is_service", False)
+            # is_service n'est dans res que si le champ est dans la vue :
+            # repli sur le contexte posé par le bouton (default_is_service),
+            # sinon le montant par défaut prenait le total des EXTRAS pour un
+            # règlement de services (22/10/2026).
+            is_service = res.get(
+                "is_service", self.env.context.get("default_is_service", False)
+            )
             res["amount"] = (
                 sale_order.x_folio_total_due_service if is_service else sale_order.x_folio_total_due
             )
