@@ -4,11 +4,13 @@ import { useService } from "@web/core/utils/hooks";
 import { ConfirmationDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { onWillStart, onWillUpdateProps, useState } from "@odoo/owl";
 
-// Indicateur de chambre du planning hôtel, à gauche du nom :
-// réveil orange = départ dépassé non effectué (clic -> ouvre la réservation),
-// balai rouge = à nettoyer (clic -> Propre), balai vert = propre et prête,
-// emplacement vide = client en séjour ou chambre attendue. États calculés
-// côté serveur en un seul appel (get_hotel_broom_states).
+// Indicateur de chambre du planning hôtel, à gauche du nom (toujours
+// visible, quelle que soit la période affichée), une seule icône par chambre :
+// réveil = départ dépassé non effectué ; balai rouge = à nettoyer (clic ->
+// Propre) ; sablier = arrivée non effectuée (no-show) ; balai vert = propre
+// et prête ; vide = client en séjour ou chambre attendue. Réveil et sablier :
+// clic -> ouvre la réservation. États calculés côté serveur en un seul appel
+// (get_hotel_broom_states).
 patch(PlanningGanttRenderer.prototype, {
     setup() {
         super.setup();
@@ -51,7 +53,8 @@ patch(PlanningGanttRenderer.prototype, {
     /**
      * false : pas une ligne de chambre (rien n'est affiché) ;
      * 'none' : chambre sans indicateur (emplacement vide : alignement) ;
-     * 'late' | 'dirty' | 'clean' : réveil orange, balai rouge ou vert.
+     * 'late' | 'dirty' | 'noshow' | 'clean' : réveil, balai rouge, sablier
+     * ou balai vert.
      */
     getHotelBroom(row) {
         const entry = this._getHotelBroomEntry(row);
@@ -66,7 +69,7 @@ patch(PlanningGanttRenderer.prototype, {
     async onHotelBroomClick(row) {
         const props = this.getAvatarProps(row);
         const state = this.getHotelBroom(row);
-        if (state === "late") {
+        if (state === "late" || state === "noshow") {
             const action = await this.hotelBroomOrm.call(
                 "resource.resource", "action_hotel_open_late_folio", [[props.resId]]
             );

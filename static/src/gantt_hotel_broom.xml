@@ -12,7 +12,7 @@
             <span t-if="hotelBroom"
                   t-attf-class="o_hotel_broom o_hotel_broom_{{ hotelBroom }} d-inline-flex flex-shrink-0 align-items-center justify-content-center rounded-circle me-2"
                   t-att-title="getHotelBroomTitle(row)"
-                  t-on-click.stop.prevent="() => this.onHotelBroomClick(row)"><t t-if="hotelBroom === 'late'">⏰</t><t t-elif="hotelBroom !== 'none'">🧹</t></span>
+                  t-on-click.stop.prevent="() => this.onHotelBroomClick(row)"><t t-if="hotelBroom === 'late'">⏰</t><t t-elif="hotelBroom === 'noshow'">⌛</t><t t-elif="hotelBroom !== 'none'">🧹</t></span>
         </xpath>
     </t>
 </templates>
