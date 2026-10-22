@@ -4,8 +4,13 @@
         <field name="model">planning.slot</field>
         <field name="inherit_id" ref="booking_engine.booking_engine_planning_gantt_view"/>
         <field name="arch" type="xml">
+            <!-- Demi-journée en Semaine et en Mois : un départ (matin) et une
+                 arrivée (après-midi) le même jour tiennent sur une seule ligne
+                 (règle de midi : gantt_hotel_tapechart_patch.js). La vue Jour
+                 reste à l'heure. -->
             <xpath expr="//gantt" position="attributes">
                 <attribute name="color">color</attribute>
+                <attribute name="precision">{'day': 'hour:full', 'week': 'day:half', 'month': 'day:half', 'year': 'day:full'}</attribute>
             </xpath>
 
             <!-- Champs chargés pour chaque barre : statut (couleur), paiement

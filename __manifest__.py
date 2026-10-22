@@ -1,6 +1,6 @@
 {
     "name": "POS Hotel INTC",
-    "version": "19.0.1.0.33",
+    "version": "19.0.1.0.34",
     "category": "Point of Sale",
     "summary": "Transfert des consommations POS vers les chambres d'hôtel",
     "depends": ["point_of_sale", "hotel", "planning"],
@@ -63,6 +63,7 @@
             "POS_HOTEL_INTC/static/src/gantt_hotel_broom.xml",
             "POS_HOTEL_INTC/static/src/scss/gantt_hotel_broom.scss",
             "POS_HOTEL_INTC/static/src/gantt_hotel_pill_patch.js",
+            "POS_HOTEL_INTC/static/src/gantt_hotel_tapechart_patch.js",
             "POS_HOTEL_INTC/static/src/gantt_hotel_pill.xml",
             "POS_HOTEL_INTC/static/src/scss/gantt_hotel_pill.scss",
             "POS_HOTEL_INTC/static/src/scss/gantt_hotel_stats.scss",
