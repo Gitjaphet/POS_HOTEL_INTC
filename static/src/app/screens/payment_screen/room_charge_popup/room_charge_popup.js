@@ -1,4 +1,4 @@
-import { Component, useState } from "@odoo/owl";
+import { Component, onWillStart, useState } from "@odoo/owl";
 import { Dialog } from "@web/core/dialog/dialog";
 import { usePos } from "@point_of_sale/app/hooks/pos_hook";
 
@@ -13,6 +13,27 @@ export class RoomChargePopup extends Component {
     setup() {
         this.pos = usePos();
         this.state = useState({ search: "" });
+        // Liste toujours à jour au moment du choix : les chambres sont relues
+        // sur le serveur à chaque ouverture (x_current_partner_id y est
+        // recalculé), sans dépendre du signal ROOM_OCCUPANCY_UPDATED ni de la
+        // copie locale du POS. Hors connexion : dernière liste connue.
+        onWillStart(() => this.refreshRooms());
+    }
+
+    async refreshRooms() {
+        const roomIds = this.pos.models["resource.resource"].getAll().map((room) => room.id);
+        if (!roomIds.length) {
+            return;
+        }
+        try {
+            await this.pos.data.read(
+                "resource.resource",
+                roomIds,
+                ["id", "name", "x_occupant_ids", "x_current_partner_id"]
+            );
+        } catch {
+            // Serveur injoignable : on garde la liste déjà chargée.
+        }
     }
 
     get occupants() {
