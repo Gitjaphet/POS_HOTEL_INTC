@@ -7,11 +7,29 @@ class SaleAdvancePaymentInv(models.TransientModel):
     _inherit = "sale.advance.payment.inv"
 
     x_include_pos_extras = fields.Boolean(
-        string="Inclure les extras et services dus",
-        help="Si coché, les consommations POS transférées au folio et encore dues, "
-             "ainsi que les services ajoutés manuellement, seront ajoutés comme lignes "
-             "de la facture (comptes de vente dédiés 707200/707300), en plus des lignes "
-             "de chambres. Uniquement disponible pour une facture normale (pas un acompte).",
+        string="Inclure les extras dus",
+        help="Si coché, les consommations (point de vente et extras ajoutés par "
+             "l'hôtel) encore dues sont ajoutées à la facture (compte 707200), en "
+             "plus des lignes de chambres. Uniquement pour une facture normale.",
+    )
+    x_include_services = fields.Boolean(
+        string="Inclure les services dus",
+        help="Si coché, les services encore dus (excursions, navettes...) sont "
+             "ajoutés à la facture (compte 707300). Uniquement pour une facture normale.",
+    )
+    x_due_extras_amount = fields.Monetary(
+        string="Extras dus",
+        compute="_compute_x_has_due_pos_extras",
+        currency_field="x_currency_id",
+    )
+    x_due_services_amount = fields.Monetary(
+        string="Services dus",
+        compute="_compute_x_has_due_pos_extras",
+        currency_field="x_currency_id",
+    )
+    x_currency_id = fields.Many2one(
+        "res.currency",
+        compute="_compute_x_has_due_pos_extras",
     )
     x_invoice_layout = fields.Selection(
         [
@@ -35,18 +53,20 @@ class SaleAdvancePaymentInv(models.TransientModel):
     @api.depends("sale_order_ids")
     def _compute_x_has_due_pos_extras(self):
         for wizard in self:
-            charges = (
-                wizard.sale_order_ids.x_folio_charge_normal_ids
-                + wizard.sale_order_ids.x_folio_charge_service_ids
-            )
-            wizard.x_has_due_pos_extras = bool(
-                charges.filtered(lambda c: c._x_is_invoiceable())
-            )
+            orders = wizard.sale_order_ids
+            extras = orders.x_folio_charge_normal_ids.filtered(lambda c: c._x_is_invoiceable())
+            services = orders.x_folio_charge_service_ids.filtered(lambda c: c._x_is_invoiceable())
+            wizard.x_currency_id = orders[:1].currency_id or self.env.company.currency_id
+            wizard.x_due_extras_amount = sum(extras.mapped("amount_net"))
+            wizard.x_due_services_amount = sum(services.mapped("amount_net"))
+            wizard.x_has_due_pos_extras = bool(extras or services)
 
     def create_invoices(self):
         self._check_amount_is_positive()
         invoices = self._create_invoices(self.sale_order_ids)
-        if self.advance_payment_method == "delivered" and self.x_include_pos_extras:
+        if self.advance_payment_method == "delivered" and (
+            self.x_include_pos_extras or self.x_include_services
+        ):
             self._add_pos_extras_lines(invoices)
         self._reconcile_down_payment_lines(invoices)
         return self.sale_order_ids.action_view_invoice(invoices=invoices)
@@ -104,10 +124,12 @@ class SaleAdvancePaymentInv(models.TransientModel):
         compensation restent une par charge dans les deux cas. Les charges
         remboursées intégralement (net 0) ne sont jamais facturées."""
         self.ensure_one()
-        due_charges = (
-            self.sale_order_ids.x_folio_charge_normal_ids
-            + self.sale_order_ids.x_folio_charge_service_ids
-        ).filtered(lambda c: c._x_is_invoiceable())
+        due_charges = self.env["pos.hotel.folio.charge"]
+        if self.x_include_pos_extras:
+            due_charges |= self.sale_order_ids.x_folio_charge_normal_ids
+        if self.x_include_services:
+            due_charges |= self.sale_order_ids.x_folio_charge_service_ids
+        due_charges = due_charges.filtered(lambda c: c._x_is_invoiceable())
         if not due_charges:
             return
 
