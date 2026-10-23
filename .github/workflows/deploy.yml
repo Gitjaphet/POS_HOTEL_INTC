@@ -6,12 +6,13 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # Version figée : ubuntu-latest change sans prévenir (migration vers 26).
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       - name: Install lint tools
@@ -24,14 +25,14 @@ jobs:
         run: python -m compileall -q .
 
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: test
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Validate __manifest__.py
         run: |
-          python3 <<'EOF'
+          python3 <<'PYEOF'
           import ast, glob, sys
           manifests = glob.glob('**/__manifest__.py', recursive=True)
           if not manifests:
@@ -46,10 +47,10 @@ jobs:
                       print(f"{path}: clé manquante '{key}'")
                       sys.exit(1)
               print(f"{path} OK — {data.get('name')} v{data.get('version')}")
-          EOF
+          PYEOF
 
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: build
     if: github.ref == 'refs/heads/main'
     steps:
