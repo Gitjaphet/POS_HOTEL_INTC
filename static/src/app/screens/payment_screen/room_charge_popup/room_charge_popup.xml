@@ -11,7 +11,7 @@
           autofocus="autofocus"
         />
         <div class="list-group">
-          <t t-foreach="rows" t-as="row" t-key="row.key">
+          <t t-foreach="visibleRows" t-as="row" t-key="row.key">
             <button
               class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
               t-att-class="{'list-group-item-info': row.isAgency}"
@@ -31,6 +31,9 @@
               </span>
             </button>
           </t>
+          <div t-if="hiddenCount" class="text-muted text-center small py-2">
+            + <t t-esc="hiddenCount"/> autre(s) : tapez un nom, une chambre ou une agence
+          </div>
           <div t-if="!rows.length" class="text-muted text-center py-3">
             Aucun client en chambre trouvé.
           </div>

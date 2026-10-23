@@ -73,6 +73,16 @@ export class RoomChargePopup extends Component {
         );
     }
 
+    // 8 lignes au plus, pour garder la fenêtre lisible ; les autres
+    // personnes se trouvent par la recherche.
+    get visibleRows() {
+        return this.rows.slice(0, 8);
+    }
+
+    get hiddenCount() {
+        return Math.max(this.rows.length - 8, 0);
+    }
+
     dueOf(row) {
         return this.pos.models["res.partner"].get(row.partnerId)?.x_room_charge_due;
     }
