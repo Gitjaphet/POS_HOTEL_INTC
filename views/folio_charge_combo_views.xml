@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Onglet Extra : la colonne Description affiche la formule et ses
-         articles en dessous (x_name_html). Une seule ligne par formule, donc
-         Annuler / Rembourser portent sur la formule entière. -->
+    <!-- Onglets Extra et Service :
+         - Extra : la colonne Description affiche la formule et ses articles
+           en dessous (x_name_html) ;
+         - Extra et Service : le badge Statut affiche « Remboursé » pour une
+           consommation remboursée intégralement (x_status_display). Le statut
+           comptable (payment_status) reste chargé, invisible : les boutons
+           Annuler / Rembourser s'en servent. -->
     <record id="sale_order_folio_charge_combo_view" model="ir.ui.view">
         <field name="name">sale.order.form.hotel.folio.combo</field>
         <field name="model">sale.order</field>
@@ -11,6 +15,22 @@
             <xpath expr="//page[@name='x_extra_charge']//field[@name='x_folio_charge_normal_ids']//list//field[@name='name']" position="replace">
                 <field name="name" column_invisible="1"/>
                 <field name="x_name_html" string="Description"/>
+            </xpath>
+            <xpath expr="//field[@name='x_folio_charge_normal_ids']//list//field[@name='payment_status']" position="replace">
+                <field name="payment_status" column_invisible="1"/>
+                <field name="x_status_display" widget="badge"
+                       decoration-warning="x_status_display == 'due'"
+                       decoration-success="x_status_display == 'paid_pos'"
+                       decoration-info="x_status_display == 'settled'"
+                       decoration-muted="x_status_display in ('cancelled', 'refunded')"/>
+            </xpath>
+            <xpath expr="//field[@name='x_folio_charge_service_ids']//list//field[@name='payment_status']" position="replace">
+                <field name="payment_status" column_invisible="1"/>
+                <field name="x_status_display" widget="badge"
+                       decoration-warning="x_status_display == 'due'"
+                       decoration-success="x_status_display == 'paid_pos'"
+                       decoration-info="x_status_display == 'settled'"
+                       decoration-muted="x_status_display in ('cancelled', 'refunded')"/>
             </xpath>
         </field>
     </record>

@@ -13,6 +13,19 @@ class SaleAdvancePaymentInv(models.TransientModel):
              "de la facture (comptes de vente dédiés 707200/707300), en plus des lignes "
              "de chambres. Uniquement disponible pour une facture normale (pas un acompte).",
     )
+    x_invoice_layout = fields.Selection(
+        [
+            ("detailed", "Détaillée (une ligne par consommation)"),
+            ("summary", "Récapitulative (une ligne par ticket)"),
+        ],
+        string="Présentation des extras",
+        default="detailed",
+        required=True,
+        help="Détaillée : chaque consommation, avec sa date et le détail des formules. "
+             "Récapitulative : les consommations du point de vente regroupées par "
+             "ticket (date, référence, total), pour les longs séjours et les groupes. "
+             "La comptabilité est identique dans les deux cas.",
+    )
     x_has_due_pos_extras = fields.Boolean(
         string="A des extras ou services dus",
         compute="_compute_x_has_due_pos_extras",
@@ -27,7 +40,7 @@ class SaleAdvancePaymentInv(models.TransientModel):
                 + wizard.sale_order_ids.x_folio_charge_service_ids
             )
             wizard.x_has_due_pos_extras = bool(
-                charges.filtered(lambda c: c.payment_status == "due")
+                charges.filtered(lambda c: c._x_is_invoiceable())
             )
 
     def create_invoices(self):
@@ -56,6 +69,17 @@ class SaleAdvancePaymentInv(models.TransientModel):
                 if origin_lines:
                     (line + origin_lines).reconcile()
 
+    def _x_local_dt(self, dt, fmt):
+        return fields.Datetime.context_timestamp(self, dt).strftime(fmt) if dt else ""
+
+    def _x_charge_label(self, charge):
+        """Présentation détaillée : « 22/10 — Nom », puis les articles d'une
+        formule sur les lignes suivantes."""
+        label = f"{self._x_local_dt(charge.date, '%d/%m')} — {charge.name}"
+        if charge.x_combo_detail:
+            label += "\n" + "\n".join(f"· {item}" for item in charge.x_combo_detail.splitlines())
+        return label
+
     def _add_pos_extras_lines(self, invoices):
         """Ajoute les extras et services dus du folio comme lignes supplémentaires
         sur la facture générée, chacun sur son compte de vente dédié (707200 pour
@@ -73,12 +97,17 @@ class SaleAdvancePaymentInv(models.TransientModel):
         chaque charge, ce qui neutralise le double-comptage ET éteint enfin la
         dette d'origine — rapprochée immédiatement si l'écriture débit d'origine
         (session POS ou ajout manuel) existe déjà, sinon laissée pour le night
-        audit."""
+        audit.
+
+        Présentation (x_invoice_layout) : détaillée (une ligne par charge) ou
+        récapitulative (charges POS regroupées par ticket). Les écritures de
+        compensation restent une par charge dans les deux cas. Les charges
+        remboursées intégralement (net 0) ne sont jamais facturées."""
         self.ensure_one()
         due_charges = (
             self.sale_order_ids.x_folio_charge_normal_ids
             + self.sale_order_ids.x_folio_charge_service_ids
-        ).filtered(lambda c: c.payment_status == "due")
+        ).filtered(lambda c: c._x_is_invoiceable())
         if not due_charges:
             return
 
@@ -133,7 +162,7 @@ class SaleAdvancePaymentInv(models.TransientModel):
 
             def _charge_line(charge):
                 return Command.create({
-                    "name": charge.name,
+                    "name": self._x_charge_label(charge),
                     "quantity": 1.0,
                     "price_unit": charge.amount_net,
                     "account_id": (
@@ -141,18 +170,38 @@ class SaleAdvancePaymentInv(models.TransientModel):
                     ),
                 })
 
+            def _ticket_lines(charges):
+                """Récapitulative : une ligne par ticket POS, au total de ses
+                consommations dues, dans l'ordre chronologique."""
+                commands = []
+                for order in charges.pos_order_id.sorted("date_order"):
+                    order_charges = charges.filtered(lambda c: c.pos_order_id == order)
+                    commands.append(Command.create({
+                        "name": (
+                            f"{self._x_local_dt(order.date_order, '%d/%m %H:%M')} — "
+                            f"Ticket {order.pos_reference} ({order.config_id.name})"
+                        ),
+                        "quantity": 1.0,
+                        "price_unit": sum(order_charges.mapped("amount_net")),
+                        "account_id": extras_income_account.id,
+                    }))
+                return commands
+
             line_commands = []
             if extras:
                 line_commands.append(Command.create({"display_type": "line_section", "name": "Extras"}))
                 if extras_pos:
                     line_commands.append(Command.create({"display_type": "line_subsection", "name": "Restaurant / Bar"}))
-                    line_commands += [_charge_line(c) for c in extras_pos]
+                    if self.x_invoice_layout == "summary":
+                        line_commands += _ticket_lines(extras_pos)
+                    else:
+                        line_commands += [_charge_line(c) for c in extras_pos.sorted("date")]
                 if extras_manual:
                     line_commands.append(Command.create({"display_type": "line_subsection", "name": "Ajoutés par l'hôtel"}))
-                    line_commands += [_charge_line(c) for c in extras_manual]
+                    line_commands += [_charge_line(c) for c in extras_manual.sorted("date")]
             if services:
                 line_commands.append(Command.create({"display_type": "line_section", "name": "Services"}))
-                line_commands += [_charge_line(c) for c in services]
+                line_commands += [_charge_line(c) for c in services.sorted("date")]
 
             invoice.write({"invoice_line_ids": line_commands})
             charges_for_invoice.write({"x_invoice_id": invoice.id})
