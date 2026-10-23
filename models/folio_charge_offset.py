@@ -1,7 +1,7 @@
 from odoo import fields, models
-from odoo.tools.misc import clean_context
 from odoo.exceptions import UserError
 from odoo.fields import Command
+from odoo.tools.misc import clean_context
 
 
 class PosHotelFolioCharge(models.Model):
@@ -14,12 +14,30 @@ class PosHotelFolioCharge(models.Model):
     éteint la créance d'origine, rapprochée tout de suite si possible, sinon
     par le night audit (qui la retrouve par x_invoice_offset_move_id).
 
-    Passée à la CONFIRMATION de la facture (account.move._post), jamais au
-    brouillon : un brouillon annulé ne laisse aucune écriture, et une facture
-    remise en brouillon puis reconfirmée réutilise sa compensation
-    (23/10/2026 — auparavant créée dès le brouillon par l'assistant de facture).
+    - Passée à la CONFIRMATION de la facture (account.move._post), jamais au
+      brouillon ; une facture remise en brouillon puis reconfirmée réutilise
+      sa compensation (23/10/2026).
+    - Contrepassée quand la facture confirmée est annulée ou extournée
+      (account.move._x_hotel_cancel_offsets) : écriture NEUVE datée du jour,
+      jamais de modification de l'écriture d'origine ni d'un audit clôturé.
+      La contrepassation rouvre la créance (débit 411200|411300), rapprochée
+      avec la prochaine compensation ou le règlement, y compris par le night
+      audit (x_invoice_offset_reversal_ids).
     """
     _inherit = "pos.hotel.folio.charge"
+
+    x_invoice_offset_reversal_ids = fields.Many2many(
+        "account.move",
+        "pos_hotel_charge_offset_reversal_rel",
+        "charge_id",
+        "move_id",
+        string="Contrepassations de compensation",
+        copy=False,
+        readonly=True,
+        help="Écritures contrepassant une compensation de facture, quand la "
+             "facture a été annulée ou extournée. Elles rouvrent la créance de "
+             "la consommation ; le night audit les rapproche.",
+    )
 
     def _x_find_account(self, code, company_id, label):
         account = self.env["account.account"].search([
@@ -90,19 +108,52 @@ class PosHotelFolioCharge(models.Model):
             new_credit_line = offset_move.line_ids.filtered(
                 lambda l: l.account_id == receivable_account
             )
+            # Dette à éteindre : celle d'origine (session POS ou ajout
+            # manuel), ou celle rouverte par une contrepassation précédente.
+            candidates = charge.x_invoice_offset_reversal_ids.line_ids
             session = (
                 charge.pos_order_id.session_id
                 or charge.original_charge_id.pos_order_id.session_id
             )
             if session and session.move_id:
-                origin_move = session.move_id
-            else:
-                origin_move = charge.x_manual_income_move_id
-            if origin_move:
-                matching_debit = origin_move.line_ids.filtered(
-                    lambda l: l.account_id == receivable_account
-                    and l.partner_id == partner
-                    and not l.reconciled
-                )
-                if matching_debit:
-                    (matching_debit + new_credit_line).reconcile()
+                candidates |= session.move_id.line_ids
+            elif charge.x_manual_income_move_id:
+                candidates |= charge.x_manual_income_move_id.line_ids
+            matching_debit = candidates.filtered(
+                lambda l: l.account_id == receivable_account
+                and l.partner_id == partner
+                and l.debit > 0
+                and not l.reconciled
+            )
+            if matching_debit:
+                (matching_debit + new_credit_line).reconcile()
+
+    def _x_cancel_invoice_offset(self, reason):
+        """Contrepasse la compensation de chaque consommation de `self` dont
+        la facture a été annulée ou extournée. La consommation repart sans
+        compensation : la prochaine facture lui en créera une neuve."""
+        for charge in self.filtered("x_invoice_offset_move_id"):
+            offset = charge.x_invoice_offset_move_id
+            reverse = offset.with_context(clean_context(self.env.context))._reverse_moves([{
+                "date": fields.Date.context_today(self),
+                "ref": f"Contrepassation compensation — {charge.name} ({reason})",
+            }])
+            reverse.action_post()
+            # Compensation pas encore rapprochée : les deux s'annulent entre
+            # elles. Sinon, la contrepassation reste une dette ouverte.
+            credit = offset.line_ids.filtered(
+                lambda l: l.credit > 0 and l.account_id.reconcile and not l.reconciled
+            )
+            debit = reverse.line_ids.filtered(
+                lambda l: l.debit > 0 and l.account_id in credit.account_id and not l.reconciled
+            )
+            if credit and debit:
+                (credit + debit).reconcile()
+            charge.write({
+                "x_invoice_offset_reversal_ids": [Command.link(reverse.id)],
+                "x_invoice_offset_move_id": False,
+            })
+            charge.sale_order_id.message_post(
+                body=f"Compensation {offset.name} contrepassée par {reverse.name} "
+                     f"({charge.name}, {reason})."
+            )

@@ -27,6 +27,31 @@ class AccountMove(models.Model):
                     charges._x_post_invoice_offset(invoice)
         return posted
 
+    def _x_hotel_cancel_offsets(self, reason):
+        """Facture client annulée ou entièrement extournée : ses
+        consommations redeviennent facturables, leurs compensations sont
+        contrepassées (folio_charge_offset._x_cancel_invoice_offset)."""
+        Charge = self.env["pos.hotel.folio.charge"]
+        for invoice in self.filtered(lambda m: m.move_type == "out_invoice"):
+            if invoice.state != "cancel" and invoice.payment_state != "reversed":
+                continue
+            charges = Charge.search([
+                ("x_invoice_id", "=", invoice.id),
+                ("x_invoice_offset_move_id", "!=", False),
+            ])
+            if charges:
+                charges._x_cancel_invoice_offset(f"{reason} {invoice.name}")
+
+    def _reverse_moves(self, default_values_list=None, cancel=False):
+        reverse_moves = super()._reverse_moves(default_values_list=default_values_list, cancel=cancel)
+        self._x_hotel_cancel_offsets("facture extournée")
+        return reverse_moves
+
+    def button_cancel(self):
+        result = super().button_cancel()
+        self._x_hotel_cancel_offsets("facture annulée")
+        return result
+
     def _reconcile_reversed_moves(self, reverse_moves, move_reverse_cancel):
         result = super()._reconcile_reversed_moves(reverse_moves, move_reverse_cancel)
         for move, reverse_move in zip(self, reverse_moves):

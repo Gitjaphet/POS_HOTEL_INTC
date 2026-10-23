@@ -107,6 +107,12 @@ class PosHotelNightAudit(models.Model):
         manual_charges_all = self.env['pos.hotel.folio.charge'].search([
             ('x_manual_income_move_id', '!=', False),
         ])
+        # Contrepassations de compensation (facture annulée ou extournée) :
+        # elles rouvrent la créance (débit), rapprochée avec la prochaine
+        # compensation ou le règlement (23/10/2026).
+        reversal_charges_all = self.env['pos.hotel.folio.charge'].search([
+            ('x_invoice_offset_reversal_ids', '!=', False),
+        ])
 
         all_closed_sessions = self.env['pos.session'].search([
             ('state', '=', 'closed'),
@@ -130,6 +136,13 @@ class PosHotelNightAudit(models.Model):
                     lambda c: (c.pos_order_id.session_id == s)
                     or (c.original_charge_id.pos_order_id.session_id == s)
                 ).mapped('x_invoice_offset_move_id.line_ids').filtered(
+                    lambda l: l.account_id == account_411200 and not l.reconciled
+                )
+            ) or (
+                reversal_charges_all.filtered(
+                    lambda c: (c.pos_order_id.session_id == s)
+                    or (c.original_charge_id.pos_order_id.session_id == s)
+                ).mapped('x_invoice_offset_reversal_ids.line_ids').filtered(
                     lambda l: l.account_id == account_411200 and not l.reconciled
                 )
             )
@@ -186,6 +199,13 @@ class PosHotelNightAudit(models.Model):
                 credit_lines |= move.line_ids.filtered(
                     lambda l: l.account_id == account_411200
                 )
+
+            debit_lines |= reversal_charges_all.filtered(
+                lambda c: (c.pos_order_id.session_id in sessions)
+                or (c.original_charge_id.pos_order_id.session_id in sessions)
+            ).mapped('x_invoice_offset_reversal_ids.line_ids').filtered(
+                lambda l: l.account_id == account_411200
+            )
 
             audited_partners |= (debit_lines + credit_lines).mapped('partner_id')
 
@@ -253,6 +273,9 @@ class PosHotelNightAudit(models.Model):
         manual_charges_scope = manual_charges_all | manual_refund_charges
 
         manual_debit_lines = manual_charges_scope.mapped('x_manual_income_move_id.line_ids').filtered(
+            lambda l: l.account_id in manual_accounts and not l.reconciled
+        )
+        manual_debit_lines |= manual_charges_scope.mapped('x_invoice_offset_reversal_ids.line_ids').filtered(
             lambda l: l.account_id in manual_accounts and not l.reconciled
         )
         manual_credit_lines = self.env['account.move.line']
