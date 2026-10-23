@@ -3,8 +3,9 @@
     <!-- Onglets Extra et Service :
          - Extra : la colonne Description affiche la formule et ses articles
            en dessous (x_name_html) ;
-         - Extra et Service : le badge Statut affiche « Remboursé » pour une
-           consommation remboursée intégralement (x_status_display). Le statut
+         - Extra et Service : le badge Statut affiche « Facturé » (due, déjà
+           sur une facture active) et « Remboursé » (remboursée
+           intégralement) au lieu de « Dû » (x_status_display). Le statut
            comptable (payment_status) reste chargé, invisible : les boutons
            Annuler / Rembourser s'en servent. -->
     <record id="sale_order_folio_charge_combo_view" model="ir.ui.view">
@@ -20,6 +21,7 @@
                 <field name="payment_status" column_invisible="1"/>
                 <field name="x_status_display" widget="badge"
                        decoration-warning="x_status_display == 'due'"
+                       decoration-primary="x_status_display == 'invoiced'"
                        decoration-success="x_status_display == 'paid_pos'"
                        decoration-info="x_status_display == 'settled'"
                        decoration-muted="x_status_display in ('cancelled', 'refunded')"/>
@@ -28,6 +30,7 @@
                 <field name="payment_status" column_invisible="1"/>
                 <field name="x_status_display" widget="badge"
                        decoration-warning="x_status_display == 'due'"
+                       decoration-primary="x_status_display == 'invoiced'"
                        decoration-success="x_status_display == 'paid_pos'"
                        decoration-info="x_status_display == 'settled'"
                        decoration-muted="x_status_display in ('cancelled', 'refunded')"/>
