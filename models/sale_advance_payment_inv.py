@@ -119,6 +119,10 @@ class SaleAdvancePaymentInv(models.TransientModel):
         (session POS ou ajout manuel) existe déjà, sinon laissée pour le night
         audit.
 
+        Depuis le 23/10/2026, la compensation n'est plus créée ici mais à la
+        CONFIRMATION de la facture (account.move._post ->
+        folio_charge_offset._x_post_invoice_offset).
+
         Présentation (x_invoice_layout) : détaillée (une ligne par charge) ou
         récapitulative (charges POS regroupées par ticket). Les écritures de
         compensation restent une par charge dans les deux cas. Les charges
@@ -227,59 +231,3 @@ class SaleAdvancePaymentInv(models.TransientModel):
 
             invoice.write({"invoice_line_ids": line_commands})
             charges_for_invoice.write({"x_invoice_id": invoice.id})
-
-            for charge in charges_for_invoice:
-                income_account = services_income_account if charge.is_service else extras_income_account
-                receivable_account = service_charge_account if charge.is_service else room_charge_account
-                partner = charge.partner_id or charge.sale_order_id.partner_id
-                offset_move = self.env["account.move"].create({
-                    "journal_id": general_journal.id,
-                    "date": fields.Date.context_today(self),
-                    "ref": (
-                        f"Correction double-comptage "
-                        f"{'service' if charge.is_service else 'extra'} facturé — "
-                        f"{charge.name} ({invoice.name})"
-                    ),
-                    "line_ids": [
-                        Command.create({
-                            "account_id": income_account.id,
-                            "partner_id": partner.id,
-                            "name": charge.name,
-                            "debit": charge.amount_net,
-                            "credit": 0.0,
-                        }),
-                        Command.create({
-                            "account_id": receivable_account.id,
-                            "partner_id": partner.id,
-                            "name": charge.name,
-                            "debit": 0.0,
-                            "credit": charge.amount_net,
-                        }),
-                    ],
-                })
-                offset_move.action_post()
-                charge.write({"x_invoice_offset_move_id": offset_move.id})
-
-                new_credit_line = offset_move.line_ids.filtered(
-                    lambda l: l.account_id == receivable_account
-                )
-                session = (
-                    charge.pos_order_id.session_id
-                    or charge.original_charge_id.pos_order_id.session_id
-                )
-                if session and session.move_id:
-                    matching_debit = session.move_id.line_ids.filtered(
-                        lambda l: l.account_id == receivable_account
-                        and l.partner_id == partner
-                        and not l.reconciled
-                    )
-                    if matching_debit:
-                        (matching_debit + new_credit_line).reconcile()
-                elif charge.x_manual_income_move_id:
-                    matching_debit = charge.x_manual_income_move_id.line_ids.filtered(
-                        lambda l: l.account_id == receivable_account
-                        and l.partner_id == partner
-                        and not l.reconciled
-                    )
-                    if matching_debit:
-                        (matching_debit + new_credit_line).reconcile()

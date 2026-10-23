@@ -5,6 +5,7 @@ from . import resource_resource_housekeeping
 from . import res_partner
 from . import folio_charge
 from . import folio_charge_combo
+from . import folio_charge_offset
 from . import sale_order
 from . import pos_order
 from . import sale_order_line
