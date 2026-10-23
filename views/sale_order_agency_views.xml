@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Réservation d'agence : l'agence et la pension, juste après la
+         Source de réservation (déplacée dans l'en-tête par
+         sale_order_primary_view_pos_hotel_intc). -->
+    <record id="sale_order_agency_view" model="ir.ui.view">
+        <field name="name">sale.order.form.hotel.agency</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="POS_HOTEL_INTC.sale_order_primary_view_pos_hotel_intc"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='source_id']" position="after">
+                <field name="x_agency_partner_id"
+                       invisible="not is_rental_order"
+                       options="{'no_quick_create': True}"/>
+                <field name="x_agency_pays_board"
+                       invisible="not x_agency_partner_id"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
