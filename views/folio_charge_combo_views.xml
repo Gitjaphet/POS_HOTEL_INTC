@@ -35,6 +35,14 @@
                        decoration-info="x_status_display == 'settled'"
                        decoration-muted="x_status_display in ('cancelled', 'refunded')"/>
             </xpath>
+            <!-- La colonne Occupant affiche qui paie : la personne choisie au
+                 POS (ou l'agence), à défaut le client de la réservation. -->
+            <xpath expr="//field[@name='x_folio_charge_normal_ids']//list//field[@name='occupant_display']" position="attributes">
+                <attribute name="string">Payé par</attribute>
+            </xpath>
+            <xpath expr="//field[@name='x_folio_charge_service_ids']//list//field[@name='occupant_display']" position="attributes">
+                <attribute name="string">Payé par</attribute>
+            </xpath>
         </field>
     </record>
 </odoo>
