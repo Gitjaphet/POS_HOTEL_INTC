@@ -70,3 +70,16 @@ class PosHotelFolioCharge(models.Model):
             and not self.x_invoice_is_active
             and not self.currency_id.is_zero(self.amount_net)
         )
+
+    def _x_is_invoiceable_prepaid(self):
+        """Consommation déjà réglée (à la réception ou au POS) pouvant figurer
+        sur une facture finale complète, avec son paiement déduit
+        (account_move_prepaid.py) : pas un remboursement, montant net non nul,
+        pas déjà sur une facture active."""
+        self.ensure_one()
+        return (
+            self.payment_status in ("settled", "paid_pos")
+            and not self.is_refund
+            and not self.x_invoice_is_active
+            and not self.currency_id.is_zero(self.amount_net)
+        )

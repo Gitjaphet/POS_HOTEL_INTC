@@ -10,7 +10,7 @@
         <field name="x_currency_id" invisible="1"/>
         <group invisible="advance_payment_method != 'delivered' or not x_has_due_pos_extras">
           <!-- Une case par type, chacune visible seulement s'il y a quelque
-               chose à facturer de ce type, avec le montant dû. -->
+               chose à facturer de ce type, avec le montant. -->
           <label for="x_include_pos_extras" invisible="not x_due_extras_amount"/>
           <div class="o_row" invisible="not x_due_extras_amount">
             <field name="x_include_pos_extras"/>
@@ -21,8 +21,13 @@
             <field name="x_include_services"/>
             <field name="x_due_services_amount" readonly="1" class="text-muted"/>
           </div>
+          <label for="x_include_prepaid" invisible="not x_prepaid_amount"/>
+          <div class="o_row" invisible="not x_prepaid_amount">
+            <field name="x_include_prepaid"/>
+            <field name="x_prepaid_amount" readonly="1" class="text-muted"/>
+          </div>
           <field name="x_invoice_layout" widget="radio"
-                 invisible="not x_include_pos_extras"/>
+                 invisible="not x_include_pos_extras and not x_include_prepaid"/>
         </group>
       </group>
     </field>

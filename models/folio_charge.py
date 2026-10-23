@@ -543,6 +543,12 @@ class PosHotelFolioCharge(models.Model):
             raise UserError(
                 "Seul un extra au statut 'Réglé' peut être remboursé ainsi."
             )
+        if self.x_invoice_is_active:
+            raise UserError(
+                f"« {self.name} » figure sur la facture "
+                f"{self.x_invoice_id.name or 'brouillon'}, toujours active. "
+                "Annulez ou extournez cette facture avant de rembourser."
+            )
         return {
             'type': 'ir.actions.act_window',
             'name': "Rembourser cet extra",
@@ -625,6 +631,13 @@ class PosHotelFolioCharge(models.Model):
             return
         if any(charge.payment_status != "settled" for charge in self):
             raise UserError("Seules les charges au statut 'Réglé' peuvent être remboursées ici.")
+        invoiced = self.filtered("x_invoice_is_active")[:1]
+        if invoiced:
+            raise UserError(
+                f"« {invoiced.name} » figure sur la facture "
+                f"{invoiced.x_invoice_id.name or 'brouillon'}, toujours active. "
+                "Annulez ou extournez cette facture avant de rembourser."
+            )
         if len(self.sale_order_id) > 1:
             raise UserError("Impossible de rembourser des charges appartenant à des folios différents en une seule fois.")
         if len(set(self.mapped("is_service"))) > 1:

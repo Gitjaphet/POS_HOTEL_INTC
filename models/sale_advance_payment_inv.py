@@ -17,6 +17,17 @@ class SaleAdvancePaymentInv(models.TransientModel):
         help="Si coché, les services encore dus (excursions, navettes...) sont "
              "ajoutés à la facture (compte 707300). Uniquement pour une facture normale.",
     )
+    x_include_prepaid = fields.Boolean(
+        string="Inclure les consommations déjà réglées",
+        help="Facture finale complète : les extras et services déjà réglés à la "
+             "réception ou payés au point de vente figurent aussi sur la facture, "
+             "avec leur paiement déduit en bas (« Réglé pendant le séjour »).",
+    )
+    x_prepaid_amount = fields.Monetary(
+        string="Déjà réglé",
+        compute="_compute_x_has_due_pos_extras",
+        currency_field="x_currency_id",
+    )
     x_due_extras_amount = fields.Monetary(
         string="Extras dus",
         compute="_compute_x_has_due_pos_extras",
@@ -59,13 +70,17 @@ class SaleAdvancePaymentInv(models.TransientModel):
             wizard.x_currency_id = orders[:1].currency_id or self.env.company.currency_id
             wizard.x_due_extras_amount = sum(extras.mapped("amount_net"))
             wizard.x_due_services_amount = sum(services.mapped("amount_net"))
-            wizard.x_has_due_pos_extras = bool(extras or services)
+            prepaid = (
+                orders.x_folio_charge_normal_ids + orders.x_folio_charge_service_ids
+            ).filtered(lambda c: c._x_is_invoiceable_prepaid())
+            wizard.x_prepaid_amount = sum(prepaid.mapped("amount_net"))
+            wizard.x_has_due_pos_extras = bool(extras or services or prepaid)
 
     def create_invoices(self):
         self._check_amount_is_positive()
         invoices = self._create_invoices(self.sale_order_ids)
         if self.advance_payment_method == "delivered" and (
-            self.x_include_pos_extras or self.x_include_services
+            self.x_include_pos_extras or self.x_include_services or self.x_include_prepaid
         ):
             self._add_pos_extras_lines(invoices)
         self._reconcile_down_payment_lines(invoices)
@@ -134,6 +149,11 @@ class SaleAdvancePaymentInv(models.TransientModel):
         if self.x_include_services:
             due_charges |= self.sale_order_ids.x_folio_charge_service_ids
         due_charges = due_charges.filtered(lambda c: c._x_is_invoiceable())
+        if self.x_include_prepaid:
+            due_charges |= (
+                self.sale_order_ids.x_folio_charge_normal_ids
+                + self.sale_order_ids.x_folio_charge_service_ids
+            ).filtered(lambda c: c._x_is_invoiceable_prepaid())
         if not due_charges:
             return
 
