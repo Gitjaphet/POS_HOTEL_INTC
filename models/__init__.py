@@ -25,3 +25,4 @@ from . import account_move
 from . import stay_guest
 from . import res_company
 from . import res_config_settings
+from . import pos_order_refund_guard
