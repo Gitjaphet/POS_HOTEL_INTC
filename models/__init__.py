@@ -27,3 +27,4 @@ from . import res_company
 from . import res_config_settings
 from . import pos_order_refund_guard
 from . import sale_order_agency
+from . import resource_resource_pos_payers

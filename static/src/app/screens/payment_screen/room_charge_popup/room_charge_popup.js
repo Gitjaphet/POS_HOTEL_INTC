@@ -12,53 +12,91 @@ export class RoomChargePopup extends Component {
 
     setup() {
         this.pos = usePos();
-        this.state = useState({ search: "" });
-        // Liste toujours à jour au moment du choix : les chambres sont relues
-        // sur le serveur à chaque ouverture (x_current_partner_id y est
-        // recalculé), sans dépendre du signal ROOM_OCCUPANCY_UPDATED ni de la
-        // copie locale du POS. Hors connexion : dernière liste connue.
-        onWillStart(() => this.refreshRooms());
+        this.state = useState({ search: "", payers: null });
+        // Liste relue sur le serveur à chaque ouverture : une ligne par
+        // personne qui peut payer (occupants enregistrés, agence si pension).
+        // Hors connexion : une ligne par chambre, depuis la copie locale.
+        onWillStart(() => this.loadPayers());
     }
 
-    async refreshRooms() {
-        const roomIds = this.pos.models["resource.resource"].getAll().map((room) => room.id);
-        if (!roomIds.length) {
-            return;
-        }
+    async loadPayers() {
         try {
-            await this.pos.data.read(
+            this.state.payers = await this.pos.data.call(
                 "resource.resource",
-                roomIds,
-                ["id", "name", "x_occupant_ids", "x_current_partner_id"]
+                "x_hotel_pos_payers",
+                []
             );
         } catch {
-            // Serveur injoignable : on garde la liste déjà chargée.
+            this.state.payers = null;
         }
     }
 
-    get occupants() {
-        const rooms = this.pos.models["resource.resource"].getAll();
-        const search = this.state.search.trim().toLowerCase();
-        const rows = [];
-
-        for (const room of rooms) {
-            const partner = room.x_current_partner_id;
-            if (partner) {
-                rows.push({ room, partner });
+    get rows() {
+        let rows = [];
+        if (this.state.payers) {
+            rows = this.state.payers.map((p) => ({
+                key: `${p.partner_id}-${p.room_id}-${p.is_agency ? "a" : "g"}`,
+                roomId: p.room_id,
+                roomName: p.room_name,
+                partnerId: p.partner_id,
+                partnerName: p.partner_name,
+                agencyName: p.agency_name || "",
+                isAgency: p.is_agency,
+                orderName: p.order_name || "",
+            }));
+        } else {
+            for (const room of this.pos.models["resource.resource"].getAll()) {
+                const partner = room.x_current_partner_id;
+                if (partner) {
+                    rows.push({
+                        key: `${partner.id}-${room.id}-g`,
+                        roomId: room.id,
+                        roomName: room.name,
+                        partnerId: partner.id,
+                        partnerName: partner.name,
+                        agencyName: "",
+                        isAgency: false,
+                        orderName: "",
+                    });
+                }
             }
         }
-
+        const search = this.state.search.trim().toLowerCase();
         if (!search) {
             return rows;
         }
         return rows.filter(
-            ({ room, partner }) =>
-                room.name.toLowerCase().includes(search) ||
-                partner.name.toLowerCase().includes(search)
+            (r) =>
+                r.roomName.toLowerCase().includes(search) ||
+                r.partnerName.toLowerCase().includes(search) ||
+                r.agencyName.toLowerCase().includes(search)
         );
     }
 
-    selectOccupant(room, partner) {
+    dueOf(row) {
+        return this.pos.models["res.partner"].get(row.partnerId)?.x_room_charge_due;
+    }
+
+    async selectRow(row) {
+        const room = this.pos.models["resource.resource"].get(row.roomId);
+        let partner = this.pos.models["res.partner"].get(row.partnerId);
+        if (!partner) {
+            // Contact absent de la mémoire du POS : chargé comme le fait la
+            // liste native des clients (fiche complète, liste de prix comprise).
+            try {
+                const result = await this.pos.data.callRelated("res.partner", "get_new_partner", [
+                    this.pos.config.id,
+                    [["id", "=", row.partnerId]],
+                    0,
+                ]);
+                partner = result["res.partner"]?.[0];
+            } catch {
+                partner = null;
+            }
+        }
+        if (!room || !partner) {
+            return;
+        }
         this.props.getPayload({ partner, room });
         this.props.close();
     }
