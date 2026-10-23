@@ -1,4 +1,5 @@
 from odoo import fields, models
+from odoo.tools.misc import clean_context
 from odoo.exceptions import UserError
 from odoo.fields import Command
 
@@ -51,7 +52,14 @@ class PosHotelFolioCharge(models.Model):
             income_account = services_income if charge.is_service else extras_income
             receivable_account = services_receivable if charge.is_service else extras_receivable
             partner = charge.partner_id or charge.sale_order_id.partner_id
-            offset_move = self.env["account.move"].create({
+            # Contexte nettoyé et type explicite : appelée pendant la
+            # confirmation d'une facture client, la création héritait de
+            # default_move_type=out_invoice et devenait une facture
+            # (« écriture non équilibrée », 23/10/2026).
+            offset_move = self.env["account.move"].with_context(
+                clean_context(self.env.context)
+            ).create({
+                "move_type": "entry",
                 "journal_id": journal.id,
                 "date": fields.Date.context_today(self),
                 "ref": (
