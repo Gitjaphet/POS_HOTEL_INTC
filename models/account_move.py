@@ -25,6 +25,12 @@ class AccountMove(models.Model):
                 ])
                 if charges:
                     charges._x_post_invoice_offset(invoice)
+        # Avoir confirmé : la facture qu'il extourne l'est-elle maintenant
+        # entièrement ? (Odoo 19 crée l'avoir en brouillon ; le
+        # rapprochement avec la facture a lieu à sa confirmation.)
+        refunds = posted.filtered(lambda m: m.move_type == "out_refund" and m.reversed_entry_id)
+        if refunds:
+            refunds.reversed_entry_id._x_hotel_cancel_offsets("avoir sur")
         return posted
 
     def _x_hotel_cancel_offsets(self, reason):
