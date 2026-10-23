@@ -8,9 +8,14 @@
       <group name="down_payment_specification" position="before">
         <field name="x_has_due_pos_extras" invisible="1"/>
         <field name="x_currency_id" invisible="1"/>
+        <field name="x_payer_count" invisible="1"/>
+        <field name="x_payer_candidate_ids" invisible="1"/>
         <group invisible="advance_payment_method != 'delivered' or not x_has_due_pos_extras">
-          <!-- Une case par type, chacune visible seulement s'il y a quelque
-               chose à facturer de ce type, avec le montant. -->
+          <!-- Payeurs : visible seulement s'il y en a plusieurs. -->
+          <field name="x_payer_ids" widget="many2many_tags"
+                 invisible="x_payer_count &lt; 2"
+                 domain="[('id', 'in', x_payer_candidate_ids)]"
+                 options="{'no_create': True}"/>
           <label for="x_include_pos_extras" invisible="not x_due_extras_amount"/>
           <div class="o_row" invisible="not x_due_extras_amount">
             <field name="x_include_pos_extras"/>

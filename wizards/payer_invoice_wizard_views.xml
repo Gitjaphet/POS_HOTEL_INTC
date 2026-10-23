@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="pos_hotel_payer_invoice_wizard_form" model="ir.ui.view">
+        <field name="name">pos.hotel.payer.invoice.wizard.form</field>
+        <field name="model">pos.hotel.payer.invoice.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Facturer au client">
+                <field name="sale_order_id" invisible="1"/>
+                <field name="currency_id" invisible="1"/>
+                <field name="candidate_partner_ids" invisible="1"/>
+                <group>
+                    <field name="partner_id" options="{'no_create': True, 'no_open': True}"/>
+                    <label for="include_extras" invisible="not extras_amount"/>
+                    <div class="o_row" invisible="not extras_amount">
+                        <field name="include_extras"/>
+                        <field name="extras_amount" readonly="1" class="text-muted"/>
+                    </div>
+                    <label for="include_services" invisible="not services_amount"/>
+                    <div class="o_row" invisible="not services_amount">
+                        <field name="include_services"/>
+                        <field name="services_amount" readonly="1" class="text-muted"/>
+                    </div>
+                    <label for="include_prepaid" invisible="not prepaid_amount"/>
+                    <div class="o_row" invisible="not prepaid_amount">
+                        <field name="include_prepaid"/>
+                        <field name="prepaid_amount" readonly="1" class="text-muted"/>
+                    </div>
+                    <field name="invoice_layout" widget="radio" invisible="not partner_id"/>
+                </group>
+                <footer>
+                    <button name="action_confirm" string="Créer la facture" type="object" class="btn-primary"/>
+                    <button string="Annuler" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_pos_hotel_payer_invoice_wizard" model="ir.actions.act_window">
+        <field name="name">Facturer au client</field>
+        <field name="res_model">pos.hotel.payer.invoice.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <!-- Bouton dans l'en-tête d'une réservation confirmée. -->
+    <record id="sale_order_payer_invoice_button" model="ir.ui.view">
+        <field name="name">sale.order.form.hotel.payer.invoice</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="POS_HOTEL_INTC.sale_order_primary_view_pos_hotel_intc"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="%(POS_HOTEL_INTC.action_pos_hotel_payer_invoice_wizard)d"
+                        type="action"
+                        string="Facturer au client"
+                        context="{'default_sale_order_id': id}"
+                        invisible="state != 'sale' or not is_rental_order"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
