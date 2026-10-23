@@ -53,8 +53,8 @@ class AccountMove(models.Model):
                 ("x_invoice_offset_move_id", "!=", False),
             ])
             if charges:
-                charges._x_cancel_invoice_offset(f"{reason} {invoice.name}")
-            invoice._x_cancel_prepaid_entry(f"{reason} {invoice.name}")
+                charges._x_cancel_invoice_offset(f"{reason} {invoice.name or 'brouillon'}")
+            invoice._x_cancel_prepaid_entry(f"{reason} {invoice.name or 'brouillon'}")
 
     def _reverse_moves(self, default_values_list=None, cancel=False):
         reverse_moves = super()._reverse_moves(default_values_list=default_values_list, cancel=cancel)
