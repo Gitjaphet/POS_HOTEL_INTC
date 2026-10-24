@@ -1,9 +1,9 @@
 def post_init_hook(env):
     for company in env["res.company"].search([]):
+        # Comptes de l'hôtel : réglages de la société remplis (numéros par
+        # défaut 411200/411300/707200/707300, trouvés ou créés).
+        company._x_hotel_fill_accounts()
         env["pos.payment.method"]._ensure_room_charge_method(company)
-        env["pos.payment.method"]._ensure_extras_income_account(company)
-        env["pos.payment.method"]._ensure_service_charge_account(company)
-        env["pos.payment.method"]._ensure_service_income_account(company)
     _fix_room_calendars(env)
     _fix_booking_engine_order_form_view(env)
     _disable_room_hours_automation(env)

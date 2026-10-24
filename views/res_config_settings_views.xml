@@ -39,6 +39,24 @@
                         <field name="x_guest_require_travel"/>
                     </setting>
                 </block>
+                <block title="Comptabilité de l'hôtel" name="hotel_accounting">
+                    <setting id="hotel_extras_receivable" string="Créances extras (transferts chambre)"
+                             help="Par défaut 411200. Attention : changer de compte en cours d'activité ne déplace pas les écritures déjà passées.">
+                        <field name="x_hotel_extras_receivable_account_id" options="{'no_create': True}"/>
+                    </setting>
+                    <setting id="hotel_services_receivable" string="Créances services chambre"
+                             help="Par défaut 411300.">
+                        <field name="x_hotel_services_receivable_account_id" options="{'no_create': True}"/>
+                    </setting>
+                    <setting id="hotel_extras_income" string="Ventes extras chambre"
+                             help="Par défaut 707200.">
+                        <field name="x_hotel_extras_income_account_id" options="{'no_create': True}"/>
+                    </setting>
+                    <setting id="hotel_services_income" string="Ventes services chambre"
+                             help="Par défaut 707300.">
+                        <field name="x_hotel_services_income_account_id" options="{'no_create': True}"/>
+                    </setting>
+                </block>
                 <block title="Fiche de police" name="hotel_police_card">
                     <setting id="hotel_police_card_footer" string="Déclaration signée par le client"
                              help="Imprimée juste au-dessus des signatures : le client l'accepte en signant. Ex. : « Je certifie l'exactitude des renseignements ci-dessus. Départ des chambres à 12 h. L'hôtel décline toute responsabilité pour les objets de valeur non déposés au coffre. » Laisser vide pour ne rien imprimer.">
